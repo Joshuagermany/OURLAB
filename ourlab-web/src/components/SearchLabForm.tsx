@@ -81,7 +81,7 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
 
   return (
     <form className="mx-auto max-w-3xl">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="relative">
           <input
             type="text"
@@ -181,49 +181,51 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
           )}
         </div>
 
-        <div className="relative">
-          <input
-            type="text"
-            value={lab}
-            onChange={(e) => setLab(e.target.value)}
-            placeholder={variant === "write" ? "연구실 검색(+추가)" : "연구실 검색"}
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-            className="w-full rounded-md border border-black/10 px-3 py-2 outline-none focus:ring-2 focus:ring-gray-300"
-            onFocus={() => setIsLabOpen(true)}
-            onBlur={() => setTimeout(() => setIsLabOpen(false), 50)}
-          />
-          {isLabOpen && labItems.length > 0 && (
-            <div className="absolute z-50 mt-1 w-full rounded-md border border-black/10 bg-white shadow" role="listbox" onMouseDownCapture={(e) => e.preventDefault()}>
-              {labItems.map((l) => (
-                <button
-                  type="button"
-                  key={l.id}
-                  className="block w-full px-3 py-2 text-left hover:bg-gray-100"
-                  onPointerDown={(e) => {
-                    e.preventDefault();
-                    setLab(l.name);
-                    setIsLabOpen(false);
-                  }}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    setLab(l.name);
-                    setIsLabOpen(false);
-                  }}
-                >
-                  {l.name}
-                  {l.professor_name ? ` · ${l.professor_name}` : ""}
-                </button>
-              ))}
+        <div className="relative sm:col-span-2">
+          <div className="flex gap-3">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={lab}
+                onChange={(e) => setLab(e.target.value)}
+                placeholder="(선택) 교수님 이름으로 검색"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+                className="w-full rounded-md border border-black/10 px-3 py-2 outline-none focus:ring-2 focus:ring-gray-300"
+                onFocus={() => setIsLabOpen(true)}
+                onBlur={() => setTimeout(() => setIsLabOpen(false), 50)}
+              />
+              {isLabOpen && labItems.length > 0 && (
+                <div className="absolute z-50 mt-1 w-full rounded-md border border-black/10 bg-white shadow" role="listbox" onMouseDownCapture={(e) => e.preventDefault()}>
+                  {labItems.map((l) => (
+                    <button
+                      type="button"
+                      key={l.id}
+                      className="block w-full px-3 py-2 text-left hover:bg-gray-100"
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        setLab(l.name);
+                        setIsLabOpen(false);
+                      }}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setLab(l.name);
+                        setIsLabOpen(false);
+                      }}
+                    >
+                      {l.name}
+                      {l.professor_name ? ` · ${l.professor_name}` : ""}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
+            <button type="submit" className="rounded-md border border-black/10 px-4 py-2 text-black hover:bg-gray-100 whitespace-nowrap">
+              검색
+            </button>
+          </div>
         </div>
-      </div>
-      <div className="mt-3 flex justify-end">
-        <button type="submit" className="rounded-md border border-black/10 px-4 py-2 text-black hover:bg-gray-100">
-          검색
-        </button>
       </div>
     </form>
   );
