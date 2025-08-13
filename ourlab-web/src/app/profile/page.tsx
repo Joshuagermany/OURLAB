@@ -43,10 +43,19 @@ export default function ProfilePage() {
       credentials: 'include'
     })
     .then(() => {
-      window.location.href = '/'
+      // 홈페이지로 이동 후 새로고침
+      window.location.href = '/';
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
     })
     .catch(err => {
       console.error('로그아웃 실패:', err)
+      // 오류가 발생해도 홈페이지로 이동 후 새로고침
+      window.location.href = '/';
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
     })
   }
 

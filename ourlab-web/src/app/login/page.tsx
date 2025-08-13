@@ -5,12 +5,15 @@ import SocialLoginButtons from "@/components/SocialLoginButtons";
 export default function LoginPage() {
   return (
     <div className="mx-auto max-w-md px-4 py-10">
-      <h1 className="text-2xl font-semibold mb-6">로그인</h1>
-      
-      {/* 소셜 로그인 버튼들 */}
-      <div className="mb-6">
-        <SocialLoginButtons />
-      </div>
+      <div className="bg-white rounded-lg p-6 border border-gray-100" style={{
+        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+      }}>
+        <h1 className="text-2xl font-semibold mb-6">로그인</h1>
+        
+        {/* 소셜 로그인 버튼들 */}
+        <div className="mb-6">
+          <SocialLoginButtons />
+        </div>
       
       {/* 구분선 */}
       <div className="relative mb-6">
@@ -36,6 +39,7 @@ export default function LoginPage() {
           <Link href="/signup" className="text-sm text-black hover:underline">회원가입</Link>
         </div>
       </form>
+      </div>
     </div>
   );
 }

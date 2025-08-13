@@ -80,6 +80,41 @@ if (process.env.NAVER_CLIENT_ID && process.env.NAVER_CLIENT_SECRET) {
   console.log('   NAVER_CLIENT_ID와 NAVER_CLIENT_SECRET을 .env.local에 추가해주세요.');
 }
 
+// 카카오 OAuth 환경 변수가 있을 때만 Strategy 설정
+if (process.env.KAKAO_CLIENT_ID && process.env.KAKAO_CLIENT_SECRET) {
+  try {
+    const KakaoStrategy = require('passport-kakao').Strategy;
+    
+    passport.use(new KakaoStrategy({
+        clientID: process.env.KAKAO_CLIENT_ID,
+        clientSecret: process.env.KAKAO_CLIENT_SECRET,
+        callbackURL: "http://localhost:3001/auth/kakao/callback"
+      },
+      function(accessToken, refreshToken, profile, cb) {
+        try {
+          // 사용자 정보를 세션에 저장
+          return cb(null, {
+            id: profile.id,
+            displayName: profile.displayName,
+            email: profile._json?.kakao_account?.email || '',
+            picture: profile._json?.properties?.profile_image || '',
+            provider: 'kakao'
+          });
+        } catch (error) {
+          console.error('카카오 프로필 처리 오류:', error);
+          return cb(error);
+        }
+      }
+    ));
+    console.log('✅ 카카오 OAuth Strategy가 성공적으로 설정되었습니다.');
+  } catch (error) {
+    console.error('❌ 카카오 OAuth Strategy 설정 실패:', error);
+  }
+} else {
+  console.log('⚠️  카카오 OAuth 환경 변수가 설정되지 않았습니다.');
+  console.log('   KAKAO_CLIENT_ID와 KAKAO_CLIENT_SECRET을 .env.local에 추가해주세요.');
+}
+
 // Passport 직렬화/역직렬화
 passport.serializeUser((user, done) => {
   done(null, user);
@@ -129,7 +164,7 @@ app.get('/auth/google/callback', (req, res) => {
   }
   passport.authenticate('google', { 
     failureRedirect: 'http://localhost:3000/login-failure',
-    successRedirect: 'http://localhost:3000/profile'
+    successRedirect: 'http://localhost:3000/'
   })(req, res);
 });
 
@@ -154,7 +189,32 @@ app.get('/auth/naver/callback', (req, res) => {
   }
   passport.authenticate('naver', { 
     failureRedirect: 'http://localhost:3000/login-failure',
-    successRedirect: 'http://localhost:3000/profile'
+    successRedirect: 'http://localhost:3000/'
+  })(req, res);
+});
+
+// 카카오 OAuth 로그인 시작
+app.get('/auth/kakao', (req, res) => {
+  if (!process.env.KAKAO_CLIENT_ID || !process.env.KAKAO_CLIENT_SECRET) {
+    return res.status(500).json({ 
+      message: '카카오 OAuth가 설정되지 않았습니다.',
+      error: 'KAKAO_CLIENT_ID와 KAKAO_CLIENT_SECRET을 환경 변수에 설정해주세요.'
+    });
+  }
+  passport.authenticate('kakao')(req, res);
+});
+
+// 카카오 OAuth 콜백
+app.get('/auth/kakao/callback', (req, res) => {
+  if (!process.env.KAKAO_CLIENT_ID || !process.env.KAKAO_CLIENT_SECRET) {
+    return res.status(500).json({ 
+      message: '카카오 OAuth가 설정되지 않았습니다.',
+      error: 'KAKAO_CLIENT_ID와 KAKAO_CLIENT_SECRET을 환경 변수에 설정해주세요.'
+    });
+  }
+  passport.authenticate('kakao', { 
+    failureRedirect: 'http://localhost:3000/login-failure',
+    successRedirect: 'http://localhost:3000/'
   })(req, res);
 });
 
@@ -181,9 +241,151 @@ app.get('/api/auth/status', (req, res) => {
     authenticated: req.isAuthenticated(),
     user: req.user || null,
     googleOAuthConfigured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
-    naverOAuthConfigured: !!(process.env.NAVER_CLIENT_ID && process.env.NAVER_CLIENT_SECRET)
+    naverOAuthConfigured: !!(process.env.NAVER_CLIENT_ID && process.env.NAVER_CLIENT_SECRET),
+    kakaoOAuthConfigured: !!(process.env.KAKAO_CLIENT_ID && process.env.KAKAO_CLIENT_SECRET)
   });
 });
+
+// 메모리 기반 데이터 저장소 (실제 프로덕션에서는 데이터베이스 사용)
+let posts = [];
+let comments = [];
+let postIdCounter = 1;
+let commentIdCounter = 1;
+let userAnonymousMap = new Map(); // 사용자별 익명 번호 매핑 (게시글별)
+let postAnonymousCounter = new Map(); // 게시글별 익명 번호 카운터
+let postViews = new Map(); // 게시글 조회수: { postId: number }
+
+
+// 게시글 목록 조회
+app.get('/api/posts', (req, res) => {
+  const postsWithCommentCount = posts.map(post => {
+    const postComments = comments.filter(comment => comment.postId === post.id);
+    const viewCount = postViews.get(post.id) || 1; // 기본값을 1로 설정
+    return {
+      ...post,
+      commentCount: postComments.length,
+      viewCount: viewCount
+    };
+  });
+  
+  res.json({
+    posts: postsWithCommentCount
+  });
+});
+
+// 게시글 작성
+app.post('/api/posts', isAuthenticated, (req, res) => {
+  const { title, content } = req.body;
+  
+  if (!title || !content) {
+    return res.status(400).json({ message: '제목과 내용을 모두 입력해주세요.' });
+  }
+  
+  const newPost = {
+    id: postIdCounter.toString(),
+    title: title.trim(),
+    content: content.trim(),
+    author: req.user.displayName,
+    authorEmail: req.user.email,
+    createdAt: new Date().toISOString()
+  };
+  
+  posts.unshift(newPost); // 최신 글이 위에 오도록
+  // 새 게시글의 조회수를 1로 초기화
+  postViews.set(newPost.id, 1);
+  postIdCounter++;
+  
+  res.json({
+    message: '게시글이 작성되었습니다.',
+    post: newPost
+  });
+});
+
+// 게시글 상세 조회
+app.get('/api/posts/:id', (req, res) => {
+  const post = posts.find(p => p.id === req.params.id);
+  
+  if (!post) {
+    return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+  }
+  
+  // 조회수 증가 (기본값 1, 이후 +1씩 증가)
+  const currentViews = postViews.get(post.id) || 1;
+  const newViews = currentViews + 1;
+  postViews.set(post.id, newViews);
+  
+  res.json({
+    post: {
+      ...post,
+      viewCount: newViews
+    }
+  });
+});
+
+// 댓글 목록 조회
+app.get('/api/posts/:id/comments', (req, res) => {
+  const postComments = comments.filter(comment => comment.postId === req.params.id);
+  
+  // 먼저 단 댓글이 위에 오도록 정렬 (createdAt 기준 오름차순)
+  postComments.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  
+  // 댓글 목록 반환
+  const commentsList = postComments.map(comment => ({
+    ...comment
+  }));
+  
+  res.json({
+    comments: commentsList
+  });
+});
+
+// 댓글 작성
+app.post('/api/posts/:id/comments', isAuthenticated, (req, res) => {
+  const { content } = req.body;
+  const postId = req.params.id;
+  
+  if (!content) {
+    return res.status(400).json({ message: '댓글 내용을 입력해주세요.' });
+  }
+  
+  // 게시글이 존재하는지 확인
+  const post = posts.find(p => p.id === postId);
+  if (!post) {
+    return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+  }
+  
+  // 사용자별 익명 번호 할당 (게시글별로 독립적)
+  const userKey = `${postId}:${req.user.email}`;
+  let anonymousNumber = userAnonymousMap.get(userKey);
+  
+  if (!anonymousNumber) {
+    // 해당 게시글의 현재 익명 번호 카운터 가져오기
+    let currentCounter = postAnonymousCounter.get(postId) || 0;
+    currentCounter++;
+    postAnonymousCounter.set(postId, currentCounter);
+    anonymousNumber = currentCounter;
+    userAnonymousMap.set(userKey, anonymousNumber);
+  }
+  
+  const newComment = {
+    id: commentIdCounter.toString(),
+    postId: postId,
+    content: content.trim(),
+    author: `익명${anonymousNumber}`,
+    authorEmail: req.user.email,
+    createdAt: new Date().toISOString()
+  };
+  
+  comments.push(newComment); // 먼저 단 댓글이 위에 오도록
+  commentIdCounter++;
+  
+  res.json({
+    message: '댓글이 작성되었습니다.',
+    comment: newComment
+  });
+});
+
+
 
 // 연구실 리뷰 관련 API (예시)
 app.get('/api/reviews', isAuthenticated, (req, res) => {
