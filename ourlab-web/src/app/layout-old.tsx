@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import AdBanner from "@/components/AdBanner";
-import { Providers } from "./providers";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -29,20 +28,18 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white text-black`}>
-        <Providers>
-          <div className="relative flex min-h-screen flex-col">
-            <div className="hidden xl:block fixed top-24 left-24 bottom-48 w-32">
-              <AdBanner className="h-full" label="광고" position="left" />
-            </div>
-            <div className="hidden xl:block fixed top-24 right-24 bottom-48 w-32">
-              <AdBanner className="h-full" label="광고" position="right" />
-            </div>
-            <Header />
-            <main className="flex-grow mx-auto max-w-6xl px-4">{children}</main>
-            <Footer />
+        <div className="relative flex min-h-screen flex-col">
+          <div className="hidden xl:block fixed top-24 left-24 bottom-48 w-32">
+            <AdBanner className="h-full" label="광고" position="left" />
           </div>
-        </Providers>
+          <div className="hidden xl:block fixed top-24 right-24 bottom-48 w-32">
+            <AdBanner className="h-full" label="광고" position="right" />
+          </div>
+          <Header />
+          <main className="flex-grow mx-auto max-w-6xl px-4">{children}</main>
+          <Footer />
+        </div>
       </body>
     </html>
   );
-} 
+}

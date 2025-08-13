@@ -78,7 +78,18 @@ def upsert_universities(conn: psycopg.Connection, df: pd.DataFrame) -> None:
                     )
 
 
+def clear_departments_table(conn: psycopg.Connection) -> None:
+    """departments 테이블의 모든 데이터를 삭제합니다."""
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM department;")
+        conn.commit()
+    print("Departments table cleared")
+
+
 def upsert_departments(conn: psycopg.Connection, df: pd.DataFrame) -> None:
+    # 먼저 departments 테이블을 완전히 지웁니다
+    clear_departments_table(conn)
+    
     with conn.cursor(row_factory=dict_row) as cur:
         for _, row in df.iterrows():
             official_code = str(row.get("university_official_code") or "").strip()

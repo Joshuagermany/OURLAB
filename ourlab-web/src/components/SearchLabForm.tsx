@@ -22,6 +22,11 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
   const [isUnivOpen, setIsUnivOpen] = useState(false);
   const [isDeptOpen, setIsDeptOpen] = useState(false);
   const [isLabOpen, setIsLabOpen] = useState(false);
+  
+  // 키보드 네비게이션을 위한 상태
+  const [univHighlightedIndex, setUnivHighlightedIndex] = useState(-2);
+  const [deptHighlightedIndex, setDeptHighlightedIndex] = useState(-2);
+  const [labHighlightedIndex, setLabHighlightedIndex] = useState(-2);
 
   useEffect(() => {
     if (!university || (selectedUniversityName && university === selectedUniversityName) || !isUnivOpen) {
@@ -79,6 +84,109 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
       .catch(() => {});
   }, [lab, isLabOpen, selectedUniversityId]);
 
+  // 키보드 네비게이션 핸들러들
+  const handleUnivKeyDown = (e: React.KeyboardEvent) => {
+    if (!isUnivOpen || univItems.length === 0) return;
+    
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setUnivHighlightedIndex(prev => 
+          prev === -2 ? 0 : prev < univItems.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setUnivHighlightedIndex(prev => 
+          prev > 0 ? prev - 1 : univItems.length - 1
+        );
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (univHighlightedIndex >= 0 && univHighlightedIndex < univItems.length) {
+          const selectedItem = univItems[univHighlightedIndex];
+          setUniversity(selectedItem.name);
+          setSelectedUniversityId(selectedItem.id);
+          setSelectedUniversityName(selectedItem.name);
+          setUnivItems([]);
+          setIsUnivOpen(false);
+          setUnivHighlightedIndex(-2);
+        }
+        break;
+      case 'Escape':
+        setIsUnivOpen(false);
+        setUnivHighlightedIndex(-2);
+        break;
+    }
+  };
+
+  const handleDeptKeyDown = (e: React.KeyboardEvent) => {
+    if (!isDeptOpen || deptItems.length === 0) return;
+    
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setDeptHighlightedIndex(prev => 
+          prev === -2 ? 0 : prev < deptItems.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setDeptHighlightedIndex(prev => 
+          prev > 0 ? prev - 1 : deptItems.length - 1
+        );
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (deptHighlightedIndex >= 0 && deptHighlightedIndex < deptItems.length) {
+          const selectedItem = deptItems[deptHighlightedIndex];
+          setDepartment(selectedItem.name);
+          setSelectedDepartmentName(selectedItem.name);
+          setDeptItems([]);
+          setIsDeptOpen(false);
+          setDeptHighlightedIndex(-2);
+        }
+        break;
+      case 'Escape':
+        setIsDeptOpen(false);
+        setDeptHighlightedIndex(-1);
+        break;
+    }
+  };
+
+  const handleLabKeyDown = (e: React.KeyboardEvent) => {
+    if (!isLabOpen || labItems.length === 0) return;
+    
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setLabHighlightedIndex(prev => 
+          prev === -2 ? 0 : prev < labItems.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setLabHighlightedIndex(prev => 
+          prev > 0 ? prev - 1 : labItems.length - 1
+        );
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (labHighlightedIndex >= 0 && labHighlightedIndex < labItems.length) {
+          const selectedItem = labItems[labHighlightedIndex];
+          setLab(selectedItem.name);
+          setLabItems([]);
+          setIsLabOpen(false);
+          setLabHighlightedIndex(-1);
+        }
+        break;
+      case 'Escape':
+        setIsLabOpen(false);
+        setLabHighlightedIndex(-1);
+        break;
+    }
+  };
+
   return (
     <form className="mx-auto max-w-3xl">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -93,6 +201,7 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
                 setSelectedUniversityId(null);
                 setSelectedUniversityName(null);
               }
+              setUnivHighlightedIndex(-2);
             }}
             placeholder="대학교 검색"
             autoComplete="off"
@@ -101,14 +210,17 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
             className="w-full rounded-md border border-black/10 px-3 py-2 outline-none focus:ring-2 focus:ring-gray-300"
             onFocus={() => setIsUnivOpen(true)}
             onBlur={() => setTimeout(() => setIsUnivOpen(false), 50)}
+            onKeyDown={handleUnivKeyDown}
           />
           {isUnivOpen && univItems.length > 0 && (
             <div className="absolute z-50 mt-1 w-full rounded-md border border-black/10 bg-white shadow" role="listbox" onMouseDownCapture={(e) => e.preventDefault()}>
-              {univItems.map((u) => (
+              {univItems.map((u, index) => (
                 <button
                   type="button"
                   key={u.id}
-                  className="block w-full px-3 py-2 text-left hover:bg-gray-100"
+                  className={`block w-full px-3 py-2 text-left ${
+                    index === univHighlightedIndex ? 'bg-blue-100' : 'hover:bg-gray-100'
+                  }`}
                   onPointerDown={(e) => {
                     e.preventDefault();
                     setUniversity(u.name);
@@ -116,6 +228,7 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
                     setSelectedUniversityName(u.name);
                     setUnivItems([]);
                     setIsUnivOpen(false);
+                    setUnivHighlightedIndex(-2);
                   }}
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -124,7 +237,9 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
                     setSelectedUniversityName(u.name);
                     setUnivItems([]);
                     setIsUnivOpen(false);
+                    setUnivHighlightedIndex(-2);
                   }}
+                  onMouseEnter={() => setUnivHighlightedIndex(index)}
                 >
                   {u.name}
                 </button>
@@ -143,6 +258,7 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
               if (selectedDepartmentName && v !== selectedDepartmentName) {
                 setSelectedDepartmentName(null);
               }
+              setDeptHighlightedIndex(-2);
             }}
             placeholder="학과 검색"
             autoComplete="off"
@@ -151,20 +267,24 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
             className="w-full rounded-md border border-black/10 px-3 py-2 outline-none focus:ring-2 focus:ring-gray-300"
             onFocus={() => setIsDeptOpen(true)}
             onBlur={() => setTimeout(() => setIsDeptOpen(false), 50)}
+            onKeyDown={handleDeptKeyDown}
           />
           {isDeptOpen && deptItems.length > 0 && (
             <div className="absolute z-50 mt-1 w-full rounded-md border border-black/10 bg-white shadow" role="listbox" onMouseDownCapture={(e) => e.preventDefault()}>
-              {deptItems.map((d) => (
+              {deptItems.map((d, index) => (
                 <button
                   type="button"
                   key={d.id}
-                  className="block w-full px-3 py-2 text-left hover:bg-gray-100"
+                  className={`block w-full px-3 py-2 text-left ${
+                    index === deptHighlightedIndex ? 'bg-blue-100' : 'hover:bg-gray-100'
+                  }`}
                   onPointerDown={(e) => {
                     e.preventDefault();
                     setDepartment(d.name);
                     setSelectedDepartmentName(d.name);
                     setDeptItems([]);
                     setIsDeptOpen(false);
+                    setDeptHighlightedIndex(-2);
                   }}
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -172,7 +292,9 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
                     setSelectedDepartmentName(d.name);
                     setDeptItems([]);
                     setIsDeptOpen(false);
+                    setDeptHighlightedIndex(-2);
                   }}
+                  onMouseEnter={() => setDeptHighlightedIndex(index)}
                 >
                   {d.name}
                 </button>
@@ -187,7 +309,10 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
               <input
                 type="text"
                 value={lab}
-                onChange={(e) => setLab(e.target.value)}
+                onChange={(e) => {
+                  setLab(e.target.value);
+                  setLabHighlightedIndex(-2);
+                }}
                 placeholder="(선택) 교수님 이름으로 검색"
                 autoComplete="off"
                 autoCorrect="off"
@@ -195,24 +320,30 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
                 className="w-full rounded-md border border-black/10 px-3 py-2 outline-none focus:ring-2 focus:ring-gray-300"
                 onFocus={() => setIsLabOpen(true)}
                 onBlur={() => setTimeout(() => setIsLabOpen(false), 50)}
+                onKeyDown={handleLabKeyDown}
               />
               {isLabOpen && labItems.length > 0 && (
                 <div className="absolute z-50 mt-1 w-full rounded-md border border-black/10 bg-white shadow" role="listbox" onMouseDownCapture={(e) => e.preventDefault()}>
-                  {labItems.map((l) => (
+                  {labItems.map((l, index) => (
                     <button
                       type="button"
                       key={l.id}
-                      className="block w-full px-3 py-2 text-left hover:bg-gray-100"
+                                        className={`block w-full px-3 py-2 text-left ${
+                    index === labHighlightedIndex ? 'bg-blue-100' : 'hover:bg-gray-100'
+                  }`}
                       onPointerDown={(e) => {
                         e.preventDefault();
                         setLab(l.name);
                         setIsLabOpen(false);
+                        setLabHighlightedIndex(-2);
                       }}
                       onMouseDown={(e) => {
                         e.preventDefault();
                         setLab(l.name);
                         setIsLabOpen(false);
+                        setLabHighlightedIndex(-2);
                       }}
+                      onMouseEnter={() => setLabHighlightedIndex(index)}
                     >
                       {l.name}
                       {l.professor_name ? ` · ${l.professor_name}` : ""}

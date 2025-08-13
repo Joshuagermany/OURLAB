@@ -1,10 +1,27 @@
 "use client";
 import Link from "next/link";
+import SocialLoginButtons from "@/components/SocialLoginButtons";
 
 export default function LoginPage() {
   return (
     <div className="mx-auto max-w-md px-4 py-10">
       <h1 className="text-2xl font-semibold mb-6">로그인</h1>
+      
+      {/* 소셜 로그인 버튼들 */}
+      <div className="mb-6">
+        <SocialLoginButtons />
+      </div>
+      
+      {/* 구분선 */}
+      <div className="relative mb-6">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-white px-2 text-gray-500">또는</span>
+        </div>
+      </div>
+      
       <form className="space-y-4">
         <div>
           <label className="block text-sm mb-1">이메일</label>
