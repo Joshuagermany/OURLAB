@@ -188,7 +188,7 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
   };
 
   return (
-    <form className="mx-auto max-w-3xl">
+    <form className="w-full">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="relative">
           <input

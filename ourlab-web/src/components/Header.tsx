@@ -65,6 +65,9 @@ export default function Header() {
             <Link href="/community" className="text-black hover:text-blue-600 transition-colors">
               커뮤니티
             </Link>
+            <Link href="/evaluate" className="text-black hover:text-blue-600 transition-colors">
+              우리 연구실 평가하기
+            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-4">
