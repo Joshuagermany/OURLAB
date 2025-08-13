@@ -164,7 +164,7 @@ def upsert_labs(conn: psycopg.Connection, df: pd.DataFrame) -> None:
 
             cur.execute(
                 "select id from department where university_id = %(uid)s and name_ko = %(dname)s limit 1",
-                {"uid": univ[0], "dname": dept_name},
+                {"uid": univ['id'], "dname": dept_name},
             )
             dept = cur.fetchone()
             if not dept:
@@ -182,8 +182,8 @@ def upsert_labs(conn: psycopg.Connection, df: pd.DataFrame) -> None:
                   updated_at = now();
                 """,
                 {
-                    "university_id": univ[0],
-                    "department_id": dept[0],
+                    "university_id": univ['id'],
+                    "department_id": dept['id'],
                     "name_ko": lab_name,
                     "name_en": None,
                     "professor_name": professor_name,

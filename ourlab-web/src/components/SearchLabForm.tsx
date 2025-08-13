@@ -14,6 +14,7 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
   const [labItems, setLabItems] = useState<Array<{ id: number; name: string; department_id: number; university_id: number; professor_name?: string }>>([]);
   const [selectedUniversityId, setSelectedUniversityId] = useState<number | null>(null);
   const [selectedUniversityName, setSelectedUniversityName] = useState<string | null>(null);
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | null>(null);
   const [selectedDepartmentName, setSelectedDepartmentName] = useState<string | null>(null);
   const abortRef = useRef<{ univ?: AbortController; dept?: AbortController; lab?: AbortController }>({});
   const univReqId = useRef(0);
@@ -27,6 +28,10 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
   const [univHighlightedIndex, setUnivHighlightedIndex] = useState(-2);
   const [deptHighlightedIndex, setDeptHighlightedIndex] = useState(-2);
   const [labHighlightedIndex, setLabHighlightedIndex] = useState(-2);
+
+  // 검색 결과 상태
+  const [searchResults, setSearchResults] = useState<Array<{ id: number; name: string; professor_name?: string; homepage_url?: string }>>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     if (!university || (selectedUniversityName && university === selectedUniversityName) || !isUnivOpen) {
@@ -75,14 +80,46 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
     abortRef.current.lab = c;
     const q = encodeURIComponent(lab);
     const u = selectedUniversityId ? `&university_id=${selectedUniversityId}` : "";
+    const d = selectedDepartmentId ? `&department_id=${selectedDepartmentId}` : "";
     const rid = ++labReqId.current;
-    fetch(`/api/labs?q=${q}${u}`, { signal: c.signal, cache: "no-store" })
+    fetch(`/api/labs?q=${q}${u}${d}`, { signal: c.signal, cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
         if (rid === labReqId.current) setLabItems(d.items);
       })
       .catch(() => {});
-  }, [lab, isLabOpen, selectedUniversityId]);
+  }, [lab, isLabOpen, selectedUniversityId, selectedDepartmentId]);
+
+  // 검색 함수
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    console.log("검색 시도:", {
+      selectedUniversityId,
+      selectedDepartmentId,
+      selectedUniversityName,
+      selectedDepartmentName
+    });
+    
+    if (!selectedUniversityId || !selectedDepartmentId) {
+      alert("대학교와 학과를 모두 선택해주세요.");
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await fetch(`/api/labs?university_id=${selectedUniversityId}&department_id=${selectedDepartmentId}`, {
+        cache: "no-store"
+      });
+      const data = await response.json();
+      setSearchResults(data.items);
+    } catch (error) {
+      console.error("검색 중 오류가 발생했습니다:", error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   // 키보드 네비게이션 핸들러들
   const handleUnivKeyDown = (e: React.KeyboardEvent) => {
@@ -108,6 +145,12 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
           setUniversity(selectedItem.name);
           setSelectedUniversityId(selectedItem.id);
           setSelectedUniversityName(selectedItem.name);
+          // 대학교 변경 시 학과와 연구실 초기화
+          setDepartment("");
+          setSelectedDepartmentName(null);
+          setSelectedDepartmentId(null);
+          setLab("");
+          setSearchResults([]);
           setUnivItems([]);
           setIsUnivOpen(false);
           setUnivHighlightedIndex(-2);
@@ -142,6 +185,10 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
           const selectedItem = deptItems[deptHighlightedIndex];
           setDepartment(selectedItem.name);
           setSelectedDepartmentName(selectedItem.name);
+          setSelectedDepartmentId(selectedItem.id);
+          // 학과 변경 시 연구실 초기화
+          setLab("");
+          setSearchResults([]);
           setDeptItems([]);
           setIsDeptOpen(false);
           setDeptHighlightedIndex(-2);
@@ -188,7 +235,7 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
   };
 
   return (
-    <form className="w-full">
+    <form className="w-full" onSubmit={handleSearch}>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="relative">
           <input
@@ -226,6 +273,12 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
                     setUniversity(u.name);
                     setSelectedUniversityId(u.id);
                     setSelectedUniversityName(u.name);
+                    // 대학교 변경 시 학과와 연구실 초기화
+                    setDepartment("");
+                    setSelectedDepartmentName(null);
+                    setSelectedDepartmentId(null);
+                    setLab("");
+                    setSearchResults([]);
                     setUnivItems([]);
                     setIsUnivOpen(false);
                     setUnivHighlightedIndex(-2);
@@ -235,6 +288,12 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
                     setUniversity(u.name);
                     setSelectedUniversityId(u.id);
                     setSelectedUniversityName(u.name);
+                    // 대학교 변경 시 학과와 연구실 초기화
+                    setDepartment("");
+                    setSelectedDepartmentName(null);
+                    setSelectedDepartmentId(null);
+                    setLab("");
+                    setSearchResults([]);
                     setUnivItems([]);
                     setIsUnivOpen(false);
                     setUnivHighlightedIndex(-2);
@@ -282,6 +341,10 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
                     e.preventDefault();
                     setDepartment(d.name);
                     setSelectedDepartmentName(d.name);
+                    setSelectedDepartmentId(d.id);
+                    // 학과 변경 시 연구실 초기화
+                    setLab("");
+                    setSearchResults([]);
                     setDeptItems([]);
                     setIsDeptOpen(false);
                     setDeptHighlightedIndex(-2);
@@ -290,6 +353,10 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
                     e.preventDefault();
                     setDepartment(d.name);
                     setSelectedDepartmentName(d.name);
+                    setSelectedDepartmentId(d.id);
+                    // 학과 변경 시 연구실 초기화
+                    setLab("");
+                    setSearchResults([]);
                     setDeptItems([]);
                     setIsDeptOpen(false);
                     setDeptHighlightedIndex(-2);
@@ -352,12 +419,55 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
                 </div>
               )}
             </div>
-            <button type="submit" className="rounded-md border border-black/10 px-4 py-2 text-black hover:bg-gray-100 whitespace-nowrap">
-              검색
+            <button 
+              type="submit" 
+              className="rounded-md border border-black/10 px-4 py-2 text-black hover:bg-gray-100 whitespace-nowrap"
+              disabled={isSearching}
+            >
+              {isSearching ? "검색 중..." : "검색"}
             </button>
           </div>
         </div>
       </div>
+
+      {/* 검색 결과 */}
+      {searchResults.length > 0 && (
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold mb-4">
+            {selectedUniversityName} {selectedDepartmentName} 연구실 목록 ({searchResults.length}개)
+          </h3>
+          <div className="space-y-3">
+            {searchResults.map((lab) => (
+              <div key={lab.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-medium text-gray-900">{lab.name}</h4>
+                    {lab.professor_name && (
+                      <p className="text-sm text-gray-600 mt-1">교수: {lab.professor_name}</p>
+                    )}
+                  </div>
+                  {lab.homepage_url && (
+                    <a
+                      href={lab.homepage_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 text-sm whitespace-nowrap ml-4"
+                    >
+                      홈페이지 →
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {searchResults.length === 0 && !isSearching && selectedUniversityId && selectedDepartmentId && (
+        <div className="mt-6 text-center text-gray-500">
+          해당 대학교와 학과에서 연구실을 찾을 수 없습니다.
+        </div>
+      )}
     </form>
   );
 }

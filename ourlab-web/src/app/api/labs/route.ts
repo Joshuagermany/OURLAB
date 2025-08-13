@@ -8,27 +8,41 @@ export async function GET(req: NextRequest) {
   const q = (searchParams.get("q") || "").trim();
   const universityId = searchParams.get("university_id");
   const departmentId = searchParams.get("department_id");
-  if (!q) return Response.json({ items: [] }, { headers: { "Cache-Control": "no-store, no-cache, must-revalidate, private" } });
 
-  const filters: string[] = ["l.name_ko ilike $1"];
-  const params: (string | number)[] = [`%${q}%`];
-  if (universityId) {
-    filters.push("l.university_id = $2");
-    params.push(Number(universityId));
+  // 대학교와 학과가 모두 선택된 경우에만 연구실 검색
+  if (!universityId || !departmentId) {
+    return Response.json({ items: [] }, { 
+      headers: { "Cache-Control": "no-store, no-cache, must-revalidate, private" } 
+    });
   }
-  if (departmentId) {
-    filters.push(`l.department_id = $${params.length + 1}`);
-    params.push(Number(departmentId));
+
+  const params: (string | number)[] = [];
+  let where = "l.university_id = $1 and l.department_id = $2";
+  params.push(Number(universityId), Number(departmentId));
+
+  if (q) {
+    where += " and (l.name_ko ilike $3 or l.professor_name ilike $3)";
+    params.push(`%${q}%`);
   }
 
   const sql = `
-    select l.id, l.name_ko as name, l.department_id, l.university_id, l.professor_name
+    select 
+      l.id, 
+      l.name_ko as name, 
+      l.professor_name,
+      l.homepage_url,
+      l.department_id,
+      l.university_id
     from lab l
-    where ${filters.join(" and ")}
+    where ${where}
     order by l.name_ko asc
-    limit 20
+    limit 50
   `;
+
   const { rows } = await query(sql, params);
-  return Response.json({ items: rows }, { headers: { "Cache-Control": "no-store, no-cache, must-revalidate, private" } });
+  
+  return Response.json({ items: rows }, {
+    headers: { "Cache-Control": "no-store, no-cache, must-revalidate, private" }
+  });
 }
 
