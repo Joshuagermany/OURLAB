@@ -98,7 +98,8 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
       selectedUniversityId,
       selectedDepartmentId,
       selectedUniversityName,
-      selectedDepartmentName
+      selectedDepartmentName,
+      lab
     });
     
     if (!selectedUniversityId || !selectedDepartmentId) {
@@ -108,7 +109,18 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
 
     setIsSearching(true);
     try {
-      const response = await fetch(`/api/labs?university_id=${selectedUniversityId}&department_id=${selectedDepartmentId}`, {
+      // 교수이름 검색어가 있으면 포함, 없으면 제외
+      const searchQuery = lab.trim();
+      const queryParams = new URLSearchParams({
+        university_id: selectedUniversityId.toString(),
+        department_id: selectedDepartmentId.toString()
+      });
+      
+      if (searchQuery) {
+        queryParams.append('q', searchQuery);
+      }
+      
+      const response = await fetch(`/api/labs?${queryParams.toString()}`, {
         cache: "no-store"
       });
       const data = await response.json();
@@ -380,7 +392,7 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
                   setLab(e.target.value);
                   setLabHighlightedIndex(-2);
                 }}
-                placeholder="(선택) 교수님 이름으로 검색"
+                placeholder="(선택) 교수님 이름 또는 연구실명으로 검색"
                 autoComplete="off"
                 autoCorrect="off"
                 spellCheck={false}
@@ -434,7 +446,9 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
       {searchResults.length > 0 && (
         <div className="mt-6">
           <h3 className="text-lg font-semibold mb-4">
-            {selectedUniversityName} {selectedDepartmentName} 연구실 목록 ({searchResults.length}개)
+            {selectedUniversityName} {selectedDepartmentName}
+            {lab.trim() && ` - "${lab.trim()}" 검색결과`}
+            연구실 목록 ({searchResults.length}개)
           </h3>
           <div className="space-y-3">
             {searchResults.map((lab) => (
@@ -465,7 +479,10 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
 
       {searchResults.length === 0 && !isSearching && selectedUniversityId && selectedDepartmentId && (
         <div className="mt-6 text-center text-gray-500">
-          해당 대학교와 학과에서 연구실을 찾을 수 없습니다.
+          {lab.trim() 
+            ? `"${lab.trim()}"에 해당하는 연구실을 찾을 수 없습니다.`
+            : "해당 대학교와 학과에서 연구실을 찾을 수 없습니다."
+          }
         </div>
       )}
     </form>
