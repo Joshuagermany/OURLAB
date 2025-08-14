@@ -452,26 +452,39 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
           </h3>
           <div className="space-y-3">
             {searchResults.map((lab) => (
-              <div key={lab.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-medium text-gray-900">{lab.name}</h4>
-                    {lab.professor_name && (
-                      <p className="text-sm text-gray-600 mt-1">교수: {lab.professor_name}</p>
-                    )}
-                  </div>
-                  {lab.homepage_url && (
-                    <a
-                      href={lab.homepage_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 text-sm whitespace-nowrap ml-4"
+                                  <div 
+                      key={lab.id} 
+                      className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={() => {
+                        // 연구실 상세 페이지로 이동
+                        window.location.href = `/labs/${lab.id}`;
+                      }}
                     >
-                      홈페이지 →
-                    </a>
-                  )}
-                </div>
-              </div>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-medium text-gray-900">{lab.name}</h4>
+                          {lab.professor_name && (
+                            <p className="text-sm text-gray-600 mt-1">교수: {lab.professor_name}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {lab.homepage_url && (
+                            <a
+                              href={lab.homepage_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 text-sm whitespace-nowrap"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              홈페이지 →
+                            </a>
+                          )}
+                          <span className="text-blue-600 hover:text-blue-800 text-sm">
+                            상세보기 →
+                          </span>
+                        </div>
+                      </div>
+                    </div>
             ))}
           </div>
         </div>
