@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { MessageSquare } from "lucide-react"
+import { MessageSquare, Heart } from "lucide-react"
 
 interface Post {
   id: string
@@ -15,6 +15,7 @@ interface Post {
   authorEmail: string
   createdAt: string
   viewCount: number
+  likeCount: number
 }
 
 interface Comment {
@@ -48,15 +49,29 @@ export default function PostDetailPage() {
   const [commentLoading, setCommentLoading] = useState(false)
   const [replyLoading, setReplyLoading] = useState<{ [commentId: string]: boolean }>({})
   const [user, setUser] = useState<any>(null)
+  const [isLiked, setIsLiked] = useState(false)
+  const [likeCount, setLikeCount] = useState(0)
+  const [likeLoading, setLikeLoading] = useState(false)
 
 
   useEffect(() => {
     // 인증 상태 확인
     fetch('http://localhost:3001/api/auth/status', { credentials: 'include' })
     .then(res => res.json())
-    .then(data => {
-      if (data.authenticated) {
-        setUser(data.user)
+    .then(authData => {
+      if (authData.authenticated) {
+        setUser(authData.user)
+        
+        // 로그인한 경우 좋아요 상태 가져오기
+        fetch(`http://localhost:3001/api/posts/${postId}/like`, { credentials: 'include' })
+        .then(res => res.json())
+        .then(likeData => {
+          setIsLiked(likeData.isLiked)
+          setLikeCount(likeData.likeCount)
+        })
+        .catch(err => {
+          console.error('좋아요 상태 가져오기 실패:', err)
+        })
       }
     })
     .catch(err => {
@@ -69,6 +84,7 @@ export default function PostDetailPage() {
     .then(data => {
       if (data.post) {
         setPost(data.post)
+        setLikeCount(data.post.likeCount || 0)
       } else {
         alert('게시글을 찾을 수 없습니다.')
         router.push('/community')
@@ -184,6 +200,39 @@ export default function PostDetailPage() {
     }
   }
 
+  const handleLikeToggle = async () => {
+    if (!user) {
+      alert('로그인이 필요합니다.')
+      return
+    }
+
+    setLikeLoading(true)
+
+    try {
+      const response = await fetch(`http://localhost:3001/api/posts/${postId}/like`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setIsLiked(data.isLiked)
+        setLikeCount(data.likeCount)
+      } else {
+        const error = await response.json()
+        alert(`좋아요 실패: ${error.message}`)
+      }
+    } catch (err) {
+      console.error('좋아요 실패:', err)
+      alert('좋아요 처리 중 오류가 발생했습니다.')
+    } finally {
+      setLikeLoading(false)
+    }
+  }
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleDateString('ko-KR', {
@@ -235,10 +284,29 @@ export default function PostDetailPage() {
           </div>
         </CardHeader>
         <CardContent className="min-h-[300px]">
-          <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
+          <div className="whitespace-pre-wrap text-gray-800 leading-relaxed mb-4">
             {post.content}
           </div>
-
+          
+          {/* 좋아요 버튼 */}
+          <div className="flex items-center gap-4 pt-4 pb-2 border-t border-gray-100">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLikeToggle}
+              disabled={likeLoading}
+              className={`flex items-center gap-2 ${
+                isLiked 
+                  ? 'text-red-500 border-red-500 hover:bg-red-50' 
+                  : 'text-gray-600 hover:text-red-500'
+              }`}
+            >
+              <Heart 
+                className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} 
+              />
+              {likeLoading ? '처리 중...' : `좋아요 ${likeCount}`}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -305,7 +373,7 @@ export default function PostDetailPage() {
                 
                 {/* 대댓글 버튼 */}
                 {user && (
-                  <div className="mb-3">
+                  <div className="mb-3 flex justify-start -ml-2">
                     <Button
                       variant="outline"
                       size="sm"

@@ -256,6 +256,7 @@ let replyIdCounter = 1;
 let userAnonymousMap = new Map(); // 사용자별 익명 번호 매핑 (게시글별)
 let postAnonymousCounter = new Map(); // 게시글별 익명 번호 카운터
 let postViews = new Map(); // 게시글 조회수: { postId: number }
+let postLikes = new Map(); // 게시글 좋아요: { postId: Set<userEmail> }
 
 
 // 게시글 목록 조회
@@ -263,10 +264,12 @@ app.get('/api/posts', (req, res) => {
   const postsWithCommentCount = posts.map(post => {
     const postComments = comments.filter(comment => comment.postId === post.id);
     const viewCount = postViews.get(post.id) || 1; // 기본값을 1로 설정
+    const likeCount = postLikes.get(post.id)?.size || 0;
     return {
       ...post,
       commentCount: postComments.length,
-      viewCount: viewCount
+      viewCount: viewCount,
+      likeCount: likeCount
     };
   });
   
@@ -316,10 +319,14 @@ app.get('/api/posts/:id', (req, res) => {
   const newViews = currentViews + 1;
   postViews.set(post.id, newViews);
   
+  // 좋아요 수 계산
+  const likeCount = postLikes.get(post.id)?.size || 0;
+  
   res.json({
     post: {
       ...post,
-      viewCount: newViews
+      viewCount: newViews,
+      likeCount: likeCount
     }
   });
 });
@@ -444,6 +451,64 @@ app.post('/api/posts/:postId/comments/:commentId/replies', isAuthenticated, (req
   res.json({
     message: '대댓글이 작성되었습니다.',
     reply: newReply
+  });
+});
+
+// 게시글 좋아요 토글
+app.post('/api/posts/:id/like', isAuthenticated, (req, res) => {
+  const postId = req.params.id;
+  const userEmail = req.user.email;
+  
+  // 게시글이 존재하는지 확인
+  const post = posts.find(p => p.id === postId);
+  if (!post) {
+    return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+  }
+  
+  // 좋아요 상태 확인 및 토글
+  if (!postLikes.has(postId)) {
+    postLikes.set(postId, new Set());
+  }
+  
+  const postLikeSet = postLikes.get(postId);
+  let isLiked = false;
+  
+  if (postLikeSet.has(userEmail)) {
+    // 좋아요 취소
+    postLikeSet.delete(userEmail);
+    isLiked = false;
+  } else {
+    // 좋아요 추가
+    postLikeSet.add(userEmail);
+    isLiked = true;
+  }
+  
+  res.json({
+    message: isLiked ? '좋아요를 눌렀습니다.' : '좋아요를 취소했습니다.',
+    isLiked: isLiked,
+    likeCount: postLikeSet.size
+  });
+});
+
+// 게시글 좋아요 상태 확인
+app.get('/api/posts/:id/like', isAuthenticated, (req, res) => {
+  const postId = req.params.id;
+  const userEmail = req.user.email;
+  
+  // 게시글이 존재하는지 확인
+  const post = posts.find(p => p.id === postId);
+  if (!post) {
+    return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+  }
+  
+  // 좋아요 상태 확인
+  const postLikeSet = postLikes.get(postId);
+  const isLiked = postLikeSet ? postLikeSet.has(userEmail) : false;
+  const likeCount = postLikeSet ? postLikeSet.size : 0;
+  
+  res.json({
+    isLiked: isLiked,
+    likeCount: likeCount
   });
 });
 
