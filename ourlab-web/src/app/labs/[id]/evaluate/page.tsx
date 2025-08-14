@@ -17,7 +17,6 @@ interface Lab {
 interface ReviewSummary {
   review_count: number;
   most_common_atmosphere: string | null;
-  avg_daily_work_hours: number | null;
   most_common_work_intensity: string | null;
   most_common_commute_importance: string | null;
   most_common_phd_salary: string | null;
@@ -29,7 +28,6 @@ interface ReviewForm {
   phdSalary: string;
   masterSalary: string;
   undergraduateSalary: string;
-  dailyWorkHours: number;
   workIntensity: string;
   commuteImportance: string;
   weekendWork: string;
@@ -71,7 +69,6 @@ export default function LabEvaluatePage() {
     phdSalary: '',
     masterSalary: '',
     undergraduateSalary: '',
-    dailyWorkHours: 0,
     workIntensity: '',
     commuteImportance: '',
     weekendWork: '',
@@ -211,11 +208,11 @@ export default function LabEvaluatePage() {
     e.preventDefault();
     
     // 모든 필수 항목이 입력되었는지 확인
-    if (!form.atmosphereLevel ||
-        form.dailyWorkHours === 0 || !form.weekendWork || !form.overtimeFrequency ||
+    if (!form.atmosphereLevel || !form.workIntensity || !form.commuteImportance ||
+        !form.weekendWork || !form.overtimeFrequency ||
         form.careerCorporate === 0 || form.careerProfessor === 0 || form.careerOthers === 0 ||
-        !form.ideaAcceptance || !form.mentoringStyle || !form.researchGuidance || !form.communicationStyle) {
-      alert("모든 필수 항목을 입력해주세요.");
+        !form.ideaAcceptance || !form.mentoringStyle || !form.researchGuidance) {
+      alert("필수 항목을 모두 입력해주세요.");
       return;
     }
 
@@ -346,10 +343,7 @@ export default function LabEvaluatePage() {
                   <span className="text-sm text-gray-600">연구실 분위기</span>
                   <div className="mt-1">{renderValue(reviewSummary.most_common_atmosphere)}</div>
                 </div>
-                <div>
-                  <span className="text-sm text-gray-600">평균 근무시간</span>
-                  <div className="mt-1">{renderValue(reviewSummary.avg_daily_work_hours)}시간</div>
-                </div>
+
                 <div>
                   <span className="text-sm text-gray-600">업무 강도</span>
                   <div className="mt-1">{renderValue(reviewSummary.most_common_work_intensity)}</div>
@@ -427,11 +421,7 @@ export default function LabEvaluatePage() {
                 <div className="border-b pb-6">
                   <h3 className="text-lg font-semibold mb-4">3. 업무 강도 / 워라밸</h3>
                   <div className="space-y-4">
-                    {renderNumberInput(
-                      "하루 평균 근무 시간 (시간)",
-                      form.dailyWorkHours,
-                      (value) => setForm(prev => ({ ...prev, dailyWorkHours: value }))
-                    )}
+
                     {renderRadioGroup(
                       "업무 강도",
                       WORK_INTENSITY_OPTIONS,

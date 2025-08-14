@@ -20,7 +20,6 @@ interface ReviewSummary {
   most_common_phd_salary: string | null;
   most_common_master_salary: string | null;
   most_common_undergraduate_salary: string | null;
-  avg_daily_work_hours: number | null;
   most_common_work_intensity: string | null;
   most_common_commute_importance: string | null;
   most_common_weekend_work: string | null;
@@ -40,7 +39,6 @@ interface Review {
   phd_salary: string;
   master_salary: string;
   undergraduate_salary: string;
-  daily_work_hours: number;
   work_intensity: string;
   commute_importance: string;
   weekend_work: string;
@@ -123,10 +121,7 @@ export default function LabViewPage() {
               <span className="text-gray-600">연구실 분위기:</span>
               <div className="mt-1">{renderValue(review.atmosphere_level)}</div>
             </div>
-            <div>
-              <span className="text-gray-600">하루 평균 근무시간:</span>
-              <div className="mt-1">{renderValue(review.daily_work_hours)}시간</div>
-            </div>
+
             <div>
               <span className="text-gray-600">박사생 인건비:</span>
               <div className="mt-1">{renderValue(review.phd_salary)}</div>
@@ -227,7 +222,7 @@ export default function LabViewPage() {
                   {lab.university_name} {lab.department_name}
                 </p>
                 {lab.professor_name && (
-                  <p className="text-gray-600">지도교수: {lab.professor_name}</p>
+                  <p className="text-gray-600">교수님: {lab.professor_name}</p>
                 )}
               </div>
               {lab.homepage_url && (
@@ -259,10 +254,7 @@ export default function LabViewPage() {
                   <span className="text-sm text-gray-600">연구실 분위기</span>
                   <div className="mt-1">{renderValue(reviewSummary.most_common_atmosphere)}</div>
                 </div>
-                <div>
-                  <span className="text-sm text-gray-600">평균 근무시간</span>
-                  <div className="mt-1">{renderValue(reviewSummary.avg_daily_work_hours)}시간</div>
-                </div>
+
                 <div>
                   <span className="text-sm text-gray-600">박사생 인건비</span>
                   <div className="mt-1">{renderValue(reviewSummary.most_common_phd_salary)}</div>

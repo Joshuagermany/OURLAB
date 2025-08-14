@@ -23,7 +23,6 @@ export async function GET(
         phd_salary,
         master_salary,
         undergraduate_salary,
-        daily_work_hours,
         work_intensity,
         commute_importance,
         weekend_work,
@@ -88,7 +87,6 @@ export async function POST(
       phdSalary,
       masterSalary,
       undergraduateSalary,
-      dailyWorkHours,
       workIntensity,
       commuteImportance,
       weekendWork,
@@ -111,12 +109,12 @@ export async function POST(
     }
 
     // 필수 필드 검증
-    if (!atmosphereLevel || !studentType || !salary || 
-        dailyWorkHours === undefined || !weekendWork || !overtimeFrequency ||
+    if (!atmosphereLevel || !workIntensity || !commuteImportance || 
+        !weekendWork || !overtimeFrequency ||
         careerCorporate === undefined || careerProfessor === undefined || careerOthers === undefined ||
-        !ideaAcceptance || !mentoringStyle || !researchGuidance || !communicationStyle) {
+        !ideaAcceptance || !mentoringStyle || !researchGuidance) {
       return Response.json(
-        { error: "모든 필수 항목을 입력해주세요." },
+        { error: "필수 항목을 모두 입력해주세요." },
         { status: 400 }
       );
     }
@@ -144,11 +142,11 @@ export async function POST(
     const upsertSql = `
       INSERT INTO lab_review (
         lab_id, user_email, user_name, atmosphere_level, phd_salary, master_salary, 
-        undergraduate_salary, daily_work_hours, work_intensity, commute_importance,
+        undergraduate_salary, work_intensity, commute_importance,
         weekend_work, overtime_frequency,
         career_corporate, career_professor, career_others, idea_acceptance,
         mentoring_style, research_guidance, pros_cons
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
       ON CONFLICT (lab_id, user_email) 
       DO UPDATE SET
         user_name = EXCLUDED.user_name,
@@ -156,7 +154,6 @@ export async function POST(
         phd_salary = EXCLUDED.phd_salary,
         master_salary = EXCLUDED.master_salary,
         undergraduate_salary = EXCLUDED.undergraduate_salary,
-        daily_work_hours = EXCLUDED.daily_work_hours,
         work_intensity = EXCLUDED.work_intensity,
         commute_importance = EXCLUDED.commute_importance,
         weekend_work = EXCLUDED.weekend_work,
@@ -180,7 +177,6 @@ export async function POST(
       phdSalary,
       masterSalary,
       undergraduateSalary,
-      dailyWorkHours,
       workIntensity,
       commuteImportance,
       weekendWork,
