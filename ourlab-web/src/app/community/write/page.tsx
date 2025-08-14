@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { MessageSquare } from "lucide-react"
 
 export default function WritePostPage() {
   const [title, setTitle] = useState("")
@@ -78,9 +79,12 @@ export default function WritePostPage() {
 
   return (
     <div className="mx-auto px-4 py-8" style={{ maxWidth: '1920px', minWidth: '960px' }}>
-      <Card>
+      <Card className="min-h-[600px]">
         <CardHeader>
-          <CardTitle className="text-2xl">새 게시글 작성</CardTitle>
+          <CardTitle className="text-2xl flex items-center gap-2">
+            <MessageSquare className="w-6 h-6" />
+            새 게시글 작성
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -109,7 +113,7 @@ export default function WritePostPage() {
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows={10}
+                rows={20}
                 placeholder="내용을 입력하세요"
                 required
               />

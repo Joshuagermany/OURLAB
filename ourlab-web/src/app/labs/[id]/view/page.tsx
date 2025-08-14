@@ -309,9 +309,12 @@ export default function LabViewPage() {
           </h3>
           
           {reviews.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-gray-500">
-                아직 리뷰가 없습니다.
+            <Card className="min-h-[200px] flex items-center justify-center">
+              <CardContent className="text-center text-gray-500">
+                <div>
+                  <p className="text-lg">아직 리뷰가 없습니다.</p>
+                  <p className="text-sm mt-2 text-gray-400">첫 번째 리뷰를 작성해보세요!</p>
+                </div>
               </CardContent>
             </Card>
           ) : (

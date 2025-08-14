@@ -2,10 +2,19 @@ const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
 const cors = require('cors');
+const { Pool } = require('pg');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// PostgreSQL 연결
+const pool = new Pool({
+  host: 'localhost',
+  port: 5432,
+  database: 'ourlab',
+  // 현재 시스템 사용자로 연결
+});
 
 // 미들웨어 설정
 app.use(cors({
@@ -246,116 +255,177 @@ app.get('/api/auth/status', (req, res) => {
   });
 });
 
-// 메모리 기반 데이터 저장소 (실제 프로덕션에서는 데이터베이스 사용)
-let posts = [];
-let comments = [];
-let replies = []; // 대댓글 저장소
-let postIdCounter = 1;
-let commentIdCounter = 1;
-let replyIdCounter = 1;
-let userAnonymousMap = new Map(); // 사용자별 익명 번호 매핑 (게시글별)
-let postAnonymousCounter = new Map(); // 게시글별 익명 번호 카운터
-let postViews = new Map(); // 게시글 조회수: { postId: number }
-let postLikes = new Map(); // 게시글 좋아요: { postId: Set<userEmail> }
+// 익명 번호는 이제 데이터베이스에서 관리됩니다
 
 
 // 게시글 목록 조회
-app.get('/api/posts', (req, res) => {
-  const postsWithCommentCount = posts.map(post => {
-    const postComments = comments.filter(comment => comment.postId === post.id);
-    const viewCount = postViews.get(post.id) || 1; // 기본값을 1로 설정
-    const likeCount = postLikes.get(post.id)?.size || 0;
-    return {
-      ...post,
-      commentCount: postComments.length,
-      viewCount: viewCount,
-      likeCount: likeCount
-    };
-  });
-  
-  res.json({
-    posts: postsWithCommentCount
-  });
+app.get('/api/posts', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        p.*,
+        COUNT(DISTINCT c.id) as comment_count,
+        COUNT(DISTINCT pl.id) as like_count
+      FROM community_post p
+      LEFT JOIN community_comment c ON p.id = c.post_id
+      LEFT JOIN community_post_like pl ON p.id = pl.post_id
+      GROUP BY p.id
+      ORDER BY p.created_at DESC
+    `);
+    
+    // 필드명을 프론트엔드 형식으로 변환
+    const posts = result.rows.map(row => ({
+      id: row.id.toString(),
+      title: row.title,
+      content: row.content,
+      author: row.author,
+      authorEmail: row.author_email,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      viewCount: row.view_count,
+      likeCount: row.like_count,
+      commentCount: parseInt(row.comment_count)
+    }));
+    
+    res.json({
+      posts: posts
+    });
+  } catch (error) {
+    console.error('게시글 목록 조회 오류:', error);
+    res.status(500).json({ message: '게시글 목록을 불러오는 중 오류가 발생했습니다.' });
+  }
 });
 
 // 게시글 작성
-app.post('/api/posts', isAuthenticated, (req, res) => {
+app.post('/api/posts', isAuthenticated, async (req, res) => {
   const { title, content } = req.body;
   
   if (!title || !content) {
     return res.status(400).json({ message: '제목과 내용을 모두 입력해주세요.' });
   }
   
-  const newPost = {
-    id: postIdCounter.toString(),
-    title: title.trim(),
-    content: content.trim(),
-    author: req.user.displayName,
-    authorEmail: req.user.email,
-    createdAt: new Date().toISOString()
-  };
-  
-  posts.unshift(newPost); // 최신 글이 위에 오도록
-  // 새 게시글의 조회수를 1로 초기화
-  postViews.set(newPost.id, 1);
-  postIdCounter++;
-  
-  res.json({
-    message: '게시글이 작성되었습니다.',
-    post: newPost
-  });
+  try {
+    const result = await pool.query(`
+      INSERT INTO community_post (title, content, author, author_email)
+      VALUES ($1, $2, $3, $4)
+      RETURNING *
+    `, [title.trim(), content.trim(), req.user.displayName, req.user.email]);
+    
+    res.json({
+      message: '게시글이 작성되었습니다.',
+      post: result.rows[0]
+    });
+  } catch (error) {
+    console.error('게시글 작성 오류:', error);
+    res.status(500).json({ message: '게시글 작성 중 오류가 발생했습니다.' });
+  }
 });
 
 // 게시글 상세 조회
-app.get('/api/posts/:id', (req, res) => {
-  const post = posts.find(p => p.id === req.params.id);
-  
-  if (!post) {
-    return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
-  }
-  
-  // 조회수 증가 (기본값 1, 이후 +1씩 증가)
-  const currentViews = postViews.get(post.id) || 1;
-  const newViews = currentViews + 1;
-  postViews.set(post.id, newViews);
-  
-  // 좋아요 수 계산
-  const likeCount = postLikes.get(post.id)?.size || 0;
-  
-  res.json({
-    post: {
-      ...post,
-      viewCount: newViews,
-      likeCount: likeCount
+app.get('/api/posts/:id', async (req, res) => {
+  try {
+    // 조회수 증가
+    await pool.query(`
+      UPDATE community_post 
+      SET view_count = view_count + 1 
+      WHERE id = $1
+    `, [req.params.id]);
+    
+    // 게시글 정보 조회
+    const postResult = await pool.query(`
+      SELECT 
+        p.*,
+        COUNT(DISTINCT pl.id) as like_count
+      FROM community_post p
+      LEFT JOIN community_post_like pl ON p.id = pl.post_id
+      WHERE p.id = $1
+      GROUP BY p.id
+    `, [req.params.id]);
+    
+    if (postResult.rows.length === 0) {
+      return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
     }
-  });
+    
+    // 필드명을 프론트엔드 형식으로 변환
+    const post = {
+      id: postResult.rows[0].id.toString(),
+      title: postResult.rows[0].title,
+      content: postResult.rows[0].content,
+      author: postResult.rows[0].author,
+      authorEmail: postResult.rows[0].author_email,
+      createdAt: postResult.rows[0].created_at,
+      updatedAt: postResult.rows[0].updated_at,
+      viewCount: postResult.rows[0].view_count,
+      likeCount: parseInt(postResult.rows[0].like_count)
+    };
+    
+    res.json({
+      post: post
+    });
+  } catch (error) {
+    console.error('게시글 상세 조회 오류:', error);
+    res.status(500).json({ message: '게시글을 불러오는 중 오류가 발생했습니다.' });
+  }
 });
 
 // 댓글 목록 조회
-app.get('/api/posts/:id/comments', (req, res) => {
-  const postComments = comments.filter(comment => comment.postId === req.params.id);
-  
-  // 먼저 단 댓글이 위에 오도록 정렬 (createdAt 기준 오름차순)
-  postComments.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-  
-  // 각 댓글에 대댓글 추가
-  const commentsList = postComments.map(comment => {
-    const commentReplies = replies.filter(reply => reply.commentId === comment.id);
-    commentReplies.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+app.get('/api/posts/:id/comments', async (req, res) => {
+  try {
+    // 댓글 조회
+    const commentsResult = await pool.query(`
+      SELECT * FROM community_comment 
+      WHERE post_id = $1 
+      ORDER BY created_at ASC
+    `, [req.params.id]);
     
-    return {
-      ...comment,
-      replies: commentReplies
-    };
-  });
-  
-  res.json({
-    comments: commentsList
-  });
+    // 각 댓글에 대댓글 추가
+    const commentsList = await Promise.all(commentsResult.rows.map(async (comment) => {
+      const repliesResult = await pool.query(`
+        SELECT * FROM community_reply 
+        WHERE comment_id = $1 
+        ORDER BY created_at ASC
+      `, [comment.id]);
+      
+      // 댓글 필드명 변환
+      const commentFormatted = {
+        id: comment.id.toString(),
+        postId: comment.post_id.toString(),
+        content: comment.content,
+        author: comment.author,
+        authorEmail: comment.author_email,
+        createdAt: comment.created_at,
+        updatedAt: comment.updated_at
+      };
+      
+      // 대댓글 필드명 변환
+      const repliesFormatted = repliesResult.rows.map(reply => ({
+        id: reply.id.toString(),
+        postId: reply.post_id.toString(),
+        commentId: reply.comment_id.toString(),
+        content: reply.content,
+        author: reply.author,
+        authorEmail: reply.author_email,
+        createdAt: reply.created_at,
+        updatedAt: reply.updated_at
+      }));
+      
+      return {
+        ...commentFormatted,
+        replies: repliesFormatted
+      };
+    }));
+    
+    res.json({
+      comments: commentsList
+    });
+  } catch (error) {
+    console.error('댓글 목록 조회 오류:', error);
+    res.status(500).json({ message: '댓글을 불러오는 중 오류가 발생했습니다.' });
+  }
 });
 
 // 댓글 작성
-app.post('/api/posts/:id/comments', isAuthenticated, (req, res) => {
+app.post('/api/posts/:id/comments', isAuthenticated, async (req, res) => {
   const { content } = req.body;
   const postId = req.params.id;
   
@@ -363,45 +433,66 @@ app.post('/api/posts/:id/comments', isAuthenticated, (req, res) => {
     return res.status(400).json({ message: '댓글 내용을 입력해주세요.' });
   }
   
-  // 게시글이 존재하는지 확인
-  const post = posts.find(p => p.id === postId);
-  if (!post) {
-    return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+  try {
+    // 게시글이 존재하는지 확인
+    const postResult = await pool.query('SELECT id FROM community_post WHERE id = $1', [postId]);
+    if (postResult.rows.length === 0) {
+      return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+    }
+    
+    // 사용자별 익명 번호 할당 (게시글별로 독립적)
+    // 먼저 해당 사용자가 이 게시글에 이미 댓글을 달았는지 확인
+    const existingCommentResult = await pool.query(`
+      SELECT author FROM community_comment 
+      WHERE post_id = $1 AND author_email = $2 
+      LIMIT 1
+    `, [postId, req.user.email]);
+    
+    let anonymousNumber;
+    if (existingCommentResult.rows.length > 0) {
+      // 이미 댓글을 달았으면 기존 번호 사용
+      const existingAuthor = existingCommentResult.rows[0].author;
+      anonymousNumber = parseInt(existingAuthor.replace('익명', ''));
+    } else {
+      // 새로운 사용자면 다음 번호 할당
+      const maxNumberResult = await pool.query(`
+        SELECT COALESCE(MAX(CAST(REPLACE(author, '익명', '') AS INTEGER)), 0) as max_number
+        FROM community_comment 
+        WHERE post_id = $1 AND author LIKE '익명%'
+      `, [postId]);
+      
+      anonymousNumber = parseInt(maxNumberResult.rows[0].max_number) + 1;
+    }
+    
+    const result = await pool.query(`
+      INSERT INTO community_comment (post_id, content, author, author_email)
+      VALUES ($1, $2, $3, $4)
+      RETURNING *
+    `, [postId, content.trim(), `익명${anonymousNumber}`, req.user.email]);
+    
+    // 필드명을 프론트엔드 형식으로 변환
+    const comment = {
+      id: result.rows[0].id.toString(),
+      postId: result.rows[0].post_id.toString(),
+      content: result.rows[0].content,
+      author: result.rows[0].author,
+      authorEmail: result.rows[0].author_email,
+      createdAt: result.rows[0].created_at,
+      updatedAt: result.rows[0].updated_at
+    };
+    
+    res.json({
+      message: '댓글이 작성되었습니다.',
+      comment: comment
+    });
+  } catch (error) {
+    console.error('댓글 작성 오류:', error);
+    res.status(500).json({ message: '댓글 작성 중 오류가 발생했습니다.' });
   }
-  
-  // 사용자별 익명 번호 할당 (게시글별로 독립적)
-  const userKey = `${postId}:${req.user.email}`;
-  let anonymousNumber = userAnonymousMap.get(userKey);
-  
-  if (!anonymousNumber) {
-    // 해당 게시글의 현재 익명 번호 카운터 가져오기
-    let currentCounter = postAnonymousCounter.get(postId) || 0;
-    currentCounter++;
-    postAnonymousCounter.set(postId, currentCounter);
-    anonymousNumber = currentCounter;
-    userAnonymousMap.set(userKey, anonymousNumber);
-  }
-  
-  const newComment = {
-    id: commentIdCounter.toString(),
-    postId: postId,
-    content: content.trim(),
-    author: `익명${anonymousNumber}`,
-    authorEmail: req.user.email,
-    createdAt: new Date().toISOString()
-  };
-  
-  comments.push(newComment); // 먼저 단 댓글이 위에 오도록
-  commentIdCounter++;
-  
-  res.json({
-    message: '댓글이 작성되었습니다.',
-    comment: newComment
-  });
 });
 
 // 대댓글 작성
-app.post('/api/posts/:postId/comments/:commentId/replies', isAuthenticated, (req, res) => {
+app.post('/api/posts/:postId/comments/:commentId/replies', isAuthenticated, async (req, res) => {
   const { content } = req.body;
   const postId = req.params.postId;
   const commentId = req.params.commentId;
@@ -410,106 +501,145 @@ app.post('/api/posts/:postId/comments/:commentId/replies', isAuthenticated, (req
     return res.status(400).json({ message: '대댓글 내용을 입력해주세요.' });
   }
   
-  // 게시글이 존재하는지 확인
-  const post = posts.find(p => p.id === postId);
-  if (!post) {
-    return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+  try {
+    // 게시글이 존재하는지 확인
+    const postResult = await pool.query('SELECT id FROM community_post WHERE id = $1', [postId]);
+    if (postResult.rows.length === 0) {
+      return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+    }
+    
+    // 댓글이 존재하는지 확인
+    const commentResult = await pool.query('SELECT id FROM community_comment WHERE id = $1 AND post_id = $2', [commentId, postId]);
+    if (commentResult.rows.length === 0) {
+      return res.status(404).json({ message: '댓글을 찾을 수 없습니다.' });
+    }
+    
+    // 사용자별 익명 번호 할당 (게시글별로 독립적)
+    // 먼저 해당 사용자가 이 게시글에 이미 댓글이나 대댓글을 달았는지 확인
+    const existingResult = await pool.query(`
+      SELECT author FROM (
+        SELECT author, author_email FROM community_comment WHERE post_id = $1
+        UNION ALL
+        SELECT author, author_email FROM community_reply WHERE post_id = $1
+      ) combined
+      WHERE author_email = $2 
+      LIMIT 1
+    `, [postId, req.user.email]);
+    
+    let anonymousNumber;
+    if (existingResult.rows.length > 0) {
+      // 이미 댓글이나 대댓글을 달았으면 기존 번호 사용
+      const existingAuthor = existingResult.rows[0].author;
+      anonymousNumber = parseInt(existingAuthor.replace('익명', ''));
+    } else {
+      // 새로운 사용자면 다음 번호 할당
+      const maxNumberResult = await pool.query(`
+        SELECT COALESCE(MAX(CAST(REPLACE(author, '익명', '') AS INTEGER)), 0) as max_number
+        FROM (
+          SELECT author FROM community_comment WHERE post_id = $1 AND author LIKE '익명%'
+          UNION ALL
+          SELECT author FROM community_reply WHERE post_id = $1 AND author LIKE '익명%'
+        ) combined
+      `, [postId]);
+      
+      anonymousNumber = parseInt(maxNumberResult.rows[0].max_number) + 1;
+    }
+    
+    const result = await pool.query(`
+      INSERT INTO community_reply (post_id, comment_id, content, author, author_email)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+    `, [postId, commentId, content.trim(), `익명${anonymousNumber}`, req.user.email]);
+    
+    // 필드명을 프론트엔드 형식으로 변환
+    const reply = {
+      id: result.rows[0].id.toString(),
+      postId: result.rows[0].post_id.toString(),
+      commentId: result.rows[0].comment_id.toString(),
+      content: result.rows[0].content,
+      author: result.rows[0].author,
+      authorEmail: result.rows[0].author_email,
+      createdAt: result.rows[0].created_at,
+      updatedAt: result.rows[0].updated_at
+    };
+    
+    res.json({
+      message: '대댓글이 작성되었습니다.',
+      reply: reply
+    });
+  } catch (error) {
+    console.error('대댓글 작성 오류:', error);
+    res.status(500).json({ message: '대댓글 작성 중 오류가 발생했습니다.' });
   }
-  
-  // 댓글이 존재하는지 확인
-  const comment = comments.find(c => c.id === commentId && c.postId === postId);
-  if (!comment) {
-    return res.status(404).json({ message: '댓글을 찾을 수 없습니다.' });
-  }
-  
-  // 사용자별 익명 번호 할당 (게시글별로 독립적)
-  const userKey = `${postId}:${req.user.email}`;
-  let anonymousNumber = userAnonymousMap.get(userKey);
-  
-  if (!anonymousNumber) {
-    // 해당 게시글의 현재 익명 번호 카운터 가져오기
-    let currentCounter = postAnonymousCounter.get(postId) || 0;
-    currentCounter++;
-    postAnonymousCounter.set(postId, currentCounter);
-    anonymousNumber = currentCounter;
-    userAnonymousMap.set(userKey, anonymousNumber);
-  }
-  
-  const newReply = {
-    id: replyIdCounter.toString(),
-    postId: postId,
-    commentId: commentId,
-    content: content.trim(),
-    author: `익명${anonymousNumber}`,
-    authorEmail: req.user.email,
-    createdAt: new Date().toISOString()
-  };
-  
-  replies.push(newReply);
-  replyIdCounter++;
-  
-  res.json({
-    message: '대댓글이 작성되었습니다.',
-    reply: newReply
-  });
 });
 
 // 게시글 좋아요 토글
-app.post('/api/posts/:id/like', isAuthenticated, (req, res) => {
+app.post('/api/posts/:id/like', isAuthenticated, async (req, res) => {
   const postId = req.params.id;
   const userEmail = req.user.email;
   
-  // 게시글이 존재하는지 확인
-  const post = posts.find(p => p.id === postId);
-  if (!post) {
-    return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+  try {
+    // 게시글이 존재하는지 확인
+    const postResult = await pool.query('SELECT id FROM community_post WHERE id = $1', [postId]);
+    if (postResult.rows.length === 0) {
+      return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+    }
+    
+    // 현재 좋아요 상태 확인
+    const likeResult = await pool.query('SELECT id FROM community_post_like WHERE post_id = $1 AND user_email = $2', [postId, userEmail]);
+    const isLiked = likeResult.rows.length > 0;
+    
+    if (isLiked) {
+      // 좋아요 취소
+      await pool.query('DELETE FROM community_post_like WHERE post_id = $1 AND user_email = $2', [postId, userEmail]);
+    } else {
+      // 좋아요 추가
+      await pool.query('INSERT INTO community_post_like (post_id, user_email) VALUES ($1, $2)', [postId, userEmail]);
+    }
+    
+    // 좋아요 수 조회
+    const countResult = await pool.query('SELECT COUNT(*) as count FROM community_post_like WHERE post_id = $1', [postId]);
+    const likeCount = parseInt(countResult.rows[0].count);
+    
+    res.json({
+      message: !isLiked ? '좋아요를 눌렀습니다.' : '좋아요를 취소했습니다.',
+      isLiked: !isLiked,
+      likeCount: likeCount
+    });
+  } catch (error) {
+    console.error('좋아요 토글 오류:', error);
+    res.status(500).json({ message: '좋아요 처리 중 오류가 발생했습니다.' });
   }
-  
-  // 좋아요 상태 확인 및 토글
-  if (!postLikes.has(postId)) {
-    postLikes.set(postId, new Set());
-  }
-  
-  const postLikeSet = postLikes.get(postId);
-  let isLiked = false;
-  
-  if (postLikeSet.has(userEmail)) {
-    // 좋아요 취소
-    postLikeSet.delete(userEmail);
-    isLiked = false;
-  } else {
-    // 좋아요 추가
-    postLikeSet.add(userEmail);
-    isLiked = true;
-  }
-  
-  res.json({
-    message: isLiked ? '좋아요를 눌렀습니다.' : '좋아요를 취소했습니다.',
-    isLiked: isLiked,
-    likeCount: postLikeSet.size
-  });
 });
 
 // 게시글 좋아요 상태 확인
-app.get('/api/posts/:id/like', isAuthenticated, (req, res) => {
+app.get('/api/posts/:id/like', isAuthenticated, async (req, res) => {
   const postId = req.params.id;
   const userEmail = req.user.email;
   
-  // 게시글이 존재하는지 확인
-  const post = posts.find(p => p.id === postId);
-  if (!post) {
-    return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+  try {
+    // 게시글이 존재하는지 확인
+    const postResult = await pool.query('SELECT id FROM community_post WHERE id = $1', [postId]);
+    if (postResult.rows.length === 0) {
+      return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+    }
+    
+    // 좋아요 상태 확인
+    const likeResult = await pool.query('SELECT id FROM community_post_like WHERE post_id = $1 AND user_email = $2', [postId, userEmail]);
+    const isLiked = likeResult.rows.length > 0;
+    
+    // 좋아요 수 조회
+    const countResult = await pool.query('SELECT COUNT(*) as count FROM community_post_like WHERE post_id = $1', [postId]);
+    const likeCount = parseInt(countResult.rows[0].count);
+    
+    res.json({
+      isLiked: isLiked,
+      likeCount: likeCount
+    });
+  } catch (error) {
+    console.error('좋아요 상태 확인 오류:', error);
+    res.status(500).json({ message: '좋아요 상태를 확인하는 중 오류가 발생했습니다.' });
   }
-  
-  // 좋아요 상태 확인
-  const postLikeSet = postLikes.get(postId);
-  const isLiked = postLikeSet ? postLikeSet.has(userEmail) : false;
-  const likeCount = postLikeSet ? postLikeSet.size : 0;
-  
-  res.json({
-    isLiked: isLiked,
-    likeCount: likeCount
-  });
 });
 
 
