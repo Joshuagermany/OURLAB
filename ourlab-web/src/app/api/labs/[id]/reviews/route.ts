@@ -24,6 +24,8 @@ export async function GET(
         master_salary,
         undergraduate_salary,
         daily_work_hours,
+        work_intensity,
+        commute_importance,
         weekend_work,
         overtime_frequency,
         career_corporate,
@@ -32,7 +34,6 @@ export async function GET(
         idea_acceptance,
         mentoring_style,
         research_guidance,
-        communication_style,
         pros_cons,
         created_at
       FROM lab_review
@@ -88,6 +89,8 @@ export async function POST(
       masterSalary,
       undergraduateSalary,
       dailyWorkHours,
+      workIntensity,
+      commuteImportance,
       weekendWork,
       overtimeFrequency,
       careerCorporate,
@@ -96,7 +99,6 @@ export async function POST(
       ideaAcceptance,
       mentoringStyle,
       researchGuidance,
-      communicationStyle,
       prosCons
     } = body;
 
@@ -109,7 +111,7 @@ export async function POST(
     }
 
     // 필수 필드 검증
-    if (!atmosphereLevel || !phdSalary || !masterSalary || !undergraduateSalary || 
+    if (!atmosphereLevel || !studentType || !salary || 
         dailyWorkHours === undefined || !weekendWork || !overtimeFrequency ||
         careerCorporate === undefined || careerProfessor === undefined || careerOthers === undefined ||
         !ideaAcceptance || !mentoringStyle || !researchGuidance || !communicationStyle) {
@@ -142,10 +144,11 @@ export async function POST(
     const upsertSql = `
       INSERT INTO lab_review (
         lab_id, user_email, user_name, atmosphere_level, phd_salary, master_salary, 
-        undergraduate_salary, daily_work_hours, weekend_work, overtime_frequency,
+        undergraduate_salary, daily_work_hours, work_intensity, commute_importance,
+        weekend_work, overtime_frequency,
         career_corporate, career_professor, career_others, idea_acceptance,
-        mentoring_style, research_guidance, communication_style, pros_cons
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+        mentoring_style, research_guidance, pros_cons
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
       ON CONFLICT (lab_id, user_email) 
       DO UPDATE SET
         user_name = EXCLUDED.user_name,
@@ -154,6 +157,8 @@ export async function POST(
         master_salary = EXCLUDED.master_salary,
         undergraduate_salary = EXCLUDED.undergraduate_salary,
         daily_work_hours = EXCLUDED.daily_work_hours,
+        work_intensity = EXCLUDED.work_intensity,
+        commute_importance = EXCLUDED.commute_importance,
         weekend_work = EXCLUDED.weekend_work,
         overtime_frequency = EXCLUDED.overtime_frequency,
         career_corporate = EXCLUDED.career_corporate,
@@ -162,7 +167,6 @@ export async function POST(
         idea_acceptance = EXCLUDED.idea_acceptance,
         mentoring_style = EXCLUDED.mentoring_style,
         research_guidance = EXCLUDED.research_guidance,
-        communication_style = EXCLUDED.communication_style,
         pros_cons = EXCLUDED.pros_cons,
         updated_at = NOW()
       RETURNING id, created_at, updated_at
@@ -177,6 +181,8 @@ export async function POST(
       masterSalary,
       undergraduateSalary,
       dailyWorkHours,
+      workIntensity,
+      commuteImportance,
       weekendWork,
       overtimeFrequency,
       careerCorporate,
@@ -185,7 +191,6 @@ export async function POST(
       ideaAcceptance,
       mentoringStyle,
       researchGuidance,
-      communicationStyle,
       prosCons
     ]);
 

@@ -21,6 +21,8 @@ interface ReviewSummary {
   most_common_master_salary: string | null;
   most_common_undergraduate_salary: string | null;
   avg_daily_work_hours: number | null;
+  most_common_work_intensity: string | null;
+  most_common_commute_importance: string | null;
   most_common_weekend_work: string | null;
   most_common_overtime_frequency: string | null;
   avg_career_corporate: number | null;
@@ -29,7 +31,6 @@ interface ReviewSummary {
   most_common_idea_acceptance: string | null;
   most_common_mentoring_style: string | null;
   most_common_research_guidance: string | null;
-  most_common_communication_style: string | null;
 }
 
 interface Review {
@@ -40,6 +41,8 @@ interface Review {
   master_salary: string;
   undergraduate_salary: string;
   daily_work_hours: number;
+  work_intensity: string;
+  commute_importance: string;
   weekend_work: string;
   overtime_frequency: string;
   career_corporate: number;
@@ -48,7 +51,6 @@ interface Review {
   idea_acceptance: string;
   mentoring_style: string;
   research_guidance: string;
-  communication_style: string;
   pros_cons: string;
   created_at: string;
 }
@@ -138,6 +140,14 @@ export default function LabViewPage() {
               <div className="mt-1">{renderValue(review.weekend_work)}</div>
             </div>
             <div>
+              <span className="text-gray-600">업무 강도:</span>
+              <div className="mt-1">{renderValue(review.work_intensity)}</div>
+            </div>
+            <div>
+              <span className="text-gray-600">출퇴근 시간:</span>
+              <div className="mt-1">{renderValue(review.commute_importance)}</div>
+            </div>
+            <div>
               <span className="text-gray-600">야근 빈도:</span>
               <div className="mt-1">{renderValue(review.overtime_frequency)}</div>
             </div>
@@ -157,10 +167,7 @@ export default function LabViewPage() {
               <span className="text-gray-600">연구 지도:</span>
               <div className="mt-1">{renderValue(review.research_guidance)}</div>
             </div>
-            <div>
-              <span className="text-gray-600">소통 방식:</span>
-              <div className="mt-1">{renderValue(review.communication_style)}</div>
-            </div>
+
           </div>
           {review.pros_cons && (
             <div className="mt-4 p-3 bg-gray-50 rounded-lg">
@@ -198,7 +205,7 @@ export default function LabViewPage() {
   }
 
   return (
-    <div className="mx-auto" style={{ maxWidth: '1920px', minWidth: '960px' }}>
+    <div className="mx-auto relative" style={{ maxWidth: '1920px', minWidth: '960px' }}>
       <div className="px-4 py-8">
         {/* 뒤로 가기 버튼 */}
         <Button
@@ -269,6 +276,14 @@ export default function LabViewPage() {
                   <div className="mt-1">{renderValue(reviewSummary.most_common_weekend_work)}</div>
                 </div>
                 <div>
+                  <span className="text-sm text-gray-600">업무 강도</span>
+                  <div className="mt-1">{renderValue(reviewSummary.most_common_work_intensity)}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-600">출퇴근 시간</span>
+                  <div className="mt-1">{renderValue(reviewSummary.most_common_commute_importance)}</div>
+                </div>
+                <div>
                   <span className="text-sm text-gray-600">야근 빈도</span>
                   <div className="mt-1">{renderValue(reviewSummary.most_common_overtime_frequency)}</div>
                 </div>
@@ -293,20 +308,12 @@ export default function LabViewPage() {
           </Card>
         )}
 
-        {/* 평가 작성 버튼 */}
-        <div className="mb-6 text-center">
-          <Button
-            onClick={() => router.push(`/labs/${labId}/evaluate`)}
-            className="px-6 py-2"
-          >
-            이 연구실 평가하기
-          </Button>
-        </div>
+
 
         {/* 리뷰 목록 */}
         <div>
           <h3 className="text-xl font-semibold mb-4">
-            리뷰 목록 ({reviews.length}개)
+            이 연구실 후기
           </h3>
           
           {reviews.length === 0 ? (
@@ -319,6 +326,19 @@ export default function LabViewPage() {
             <div>{reviews.map(renderReviewCard)}</div>
           )}
         </div>
+
+        {/* 평가 작성 버튼 */}
+        <div className="mt-8 text-center">
+          <Button
+            onClick={() => router.push(`/labs/${labId}/evaluate`)}
+            className="px-8 py-3 text-lg hover:underline"
+            size="lg"
+          >
+            이 연구실 평가하기
+          </Button>
+        </div>
+
+
       </div>
     </div>
   );

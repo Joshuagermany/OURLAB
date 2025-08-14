@@ -18,6 +18,8 @@ interface ReviewSummary {
   review_count: number;
   most_common_atmosphere: string | null;
   avg_daily_work_hours: number | null;
+  most_common_work_intensity: string | null;
+  most_common_commute_importance: string | null;
   most_common_phd_salary: string | null;
   most_common_master_salary: string | null;
 }
@@ -28,6 +30,8 @@ interface ReviewForm {
   masterSalary: string;
   undergraduateSalary: string;
   dailyWorkHours: number;
+  workIntensity: string;
+  commuteImportance: string;
   weekendWork: string;
   overtimeFrequency: string;
   careerCorporate: number;
@@ -36,7 +40,6 @@ interface ReviewForm {
   ideaAcceptance: string;
   mentoringStyle: string;
   researchGuidance: string;
-  communicationStyle: string;
   prosCons: string;
 }
 
@@ -44,10 +47,11 @@ const ATMOSPHERE_OPTIONS = ['매우 엄격함', '엄격한 편', '무난함', '�
 const SALARY_OPTIONS = ['학비만 지급', '학비+생활비 지급', '학비+생활비+용돈 지급'];
 const UNDERGRADUATE_SALARY_OPTIONS = ['미지급', '소정의 연구비 지급'];
 const FREQUENCY_OPTIONS = ['자주 있음', '종종 있음', '거의 없음'];
+const WORK_INTENSITY_OPTIONS = ['강한 편', '무난한 편', '여유로운 편'];
+const COMMUTE_IMPORTANCE_OPTIONS = ['맞춰야 함', '크게 중요하지 않음'];
 const IDEA_ACCEPTANCE_OPTIONS = ['학생 아이디어 적극 수용', '일부만 수용', '거의 수용하지 않음'];
-const MENTORING_STYLE_OPTIONS = ['매우 친절하고 배려심 많음', '중립적', '까다로운 편', '비협조적'];
+const MENTORING_STYLE_OPTIONS = ['매우 친절하고 배려심 많음', '친절하신 편', '중립적', '까다로운 편', '비협조적'];
 const RESEARCH_GUIDANCE_OPTIONS = ['큰 방향만 제시', '자율 진행 후 필요 시 보고', '세부 업무까지 직접 관여'];
-const COMMUNICATION_STYLE_OPTIONS = ['이메일/메신저 위주', '직접 대면 위주', '수시 연락 가능'];
 
 export default function LabEvaluatePage() {
   const params = useParams();
@@ -59,7 +63,7 @@ export default function LabEvaluatePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
-  const [showForm, setShowForm] = useState(false);
+
   const [submitting, setSubmitting] = useState(false);
 
   const [form, setForm] = useState<ReviewForm>({
@@ -68,6 +72,8 @@ export default function LabEvaluatePage() {
     masterSalary: '',
     undergraduateSalary: '',
     dailyWorkHours: 0,
+    workIntensity: '',
+    commuteImportance: '',
     weekendWork: '',
     overtimeFrequency: '',
     careerCorporate: 0,
@@ -76,7 +82,6 @@ export default function LabEvaluatePage() {
     ideaAcceptance: '',
     mentoringStyle: '',
     researchGuidance: '',
-    communicationStyle: '',
     prosCons: ''
   });
 
@@ -206,7 +211,7 @@ export default function LabEvaluatePage() {
     e.preventDefault();
     
     // 모든 필수 항목이 입력되었는지 확인
-    if (!form.atmosphereLevel || !form.phdSalary || !form.masterSalary || !form.undergraduateSalary ||
+    if (!form.atmosphereLevel ||
         form.dailyWorkHours === 0 || !form.weekendWork || !form.overtimeFrequency ||
         form.careerCorporate === 0 || form.careerProfessor === 0 || form.careerOthers === 0 ||
         !form.ideaAcceptance || !form.mentoringStyle || !form.researchGuidance || !form.communicationStyle) {
@@ -325,105 +330,47 @@ export default function LabEvaluatePage() {
           </CardHeader>
         </Card>
 
-        {!showForm ? (
-          <>
-            {/* 현재 평가 현황 */}
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle>현재 평가 현황</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {reviewSummary && reviewSummary.review_count > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div>
-                      <span className="text-sm text-gray-600">총 리뷰 수</span>
-                      <div className="mt-1 text-lg font-semibold">{reviewSummary.review_count}개</div>
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-600">연구실 분위기</span>
-                      <div className="mt-1">{renderValue(reviewSummary.most_common_atmosphere)}</div>
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-600">평균 근무시간</span>
-                      <div className="mt-1">{renderValue(reviewSummary.avg_daily_work_hours)}시간</div>
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-600">박사생 인건비</span>
-                      <div className="mt-1">{renderValue(reviewSummary.most_common_phd_salary)}</div>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-gray-500">아직 평가가 없습니다. 첫 번째 평가를 작성해보세요!</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* 평가 작성 섹션 */}
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle>연구실 평가하기</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  {user ? (
-                    <div>
-                      <p className="text-gray-600 mb-6">
-                        이 연구실에 대한 경험이나 의견을 공유해주세요.<br />
-                        다른 학생들이 더 나은 선택을 할 수 있도록 도와주세요.
-                      </p>
-                      <p className="text-sm text-gray-500 mb-6">
-                        *평가자와 평가인원에 대한 정보는 모두 비공개 처리됩니다.
-                      </p>
-                      <Button
-                        onClick={() => setShowForm(true)}
-                        size="lg"
-                        className="px-8 py-3"
-                      >
-                        <Plus className="w-5 h-5 mr-2" />
-                        평가 작성하기
-                      </Button>
-                    </div>
-                  ) : (
-                    <div>
-                      <p className="text-gray-600 mb-6">
-                        평가를 작성하려면 로그인이 필요합니다.
-                      </p>
-                      <Button
-                        onClick={() => router.push('/login')}
-                        size="lg"
-                        className="px-8 py-3"
-                      >
-                        로그인하고 평가하기
-                      </Button>
-                    </div>
-                  )}
+        {/* 현재 평가 현황 */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>현재 평가 현황</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {reviewSummary && reviewSummary.review_count > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <span className="text-sm text-gray-600">총 리뷰 수</span>
+                  <div className="mt-1 text-lg font-semibold">{reviewSummary.review_count}개</div>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* 평가 완료 후 확인 링크 */}
-            <div className="text-center">
-              <p className="text-gray-500 mb-2">
-                평가를 완료하신 후 다른 연구실 평가도 확인해보세요
-              </p>
-              <div className="flex gap-3 justify-center">
-                <Button
-                  variant="outline"
-                  onClick={() => router.push(`/labs/${labId}/view`)}
-                >
-                  이 연구실 평가 확인하기
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => router.push('/')}
-                >
-                  홈으로 돌아가기
-                </Button>
+                <div>
+                  <span className="text-sm text-gray-600">연구실 분위기</span>
+                  <div className="mt-1">{renderValue(reviewSummary.most_common_atmosphere)}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-600">평균 근무시간</span>
+                  <div className="mt-1">{renderValue(reviewSummary.avg_daily_work_hours)}시간</div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-600">업무 강도</span>
+                  <div className="mt-1">{renderValue(reviewSummary.most_common_work_intensity)}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-600">출퇴근 시간</span>
+                  <div className="mt-1">{renderValue(reviewSummary.most_common_commute_importance)}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-600">박사생 인건비</span>
+                  <div className="mt-1">{renderValue(reviewSummary.most_common_phd_salary)}</div>
+                </div>
               </div>
-            </div>
-          </>
-        ) : (
-          /* 평가 폼 */
+            ) : (
+              <p className="text-gray-500">아직 평가가 없습니다. 첫 번째 평가를 작성해보세요!</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* 평가 폼 */}
+        {user ? (
           <Card>
             <CardHeader>
               <CardTitle>연구실 평가하기</CardTitle>
@@ -450,25 +397,28 @@ export default function LabEvaluatePage() {
 
                 {/* 2. 인건비 지급 */}
                 <div className="border-b pb-6">
-                  <h3 className="text-lg font-semibold mb-4">2. 인건비 지급</h3>
+                  <h3 className="text-lg font-semibold mb-4">2. 인건비 지급 (선택사항)</h3>
                   <div className="space-y-4">
                     {renderRadioGroup(
                       "박사생",
                       SALARY_OPTIONS,
                       form.phdSalary,
-                      (value) => setForm(prev => ({ ...prev, phdSalary: value }))
+                      (value) => setForm(prev => ({ ...prev, phdSalary: value })),
+                      false
                     )}
                     {renderRadioGroup(
                       "석사생",
                       SALARY_OPTIONS,
                       form.masterSalary,
-                      (value) => setForm(prev => ({ ...prev, masterSalary: value }))
+                      (value) => setForm(prev => ({ ...prev, masterSalary: value })),
+                      false
                     )}
                     {renderRadioGroup(
                       "학부생",
                       UNDERGRADUATE_SALARY_OPTIONS,
                       form.undergraduateSalary,
-                      (value) => setForm(prev => ({ ...prev, undergraduateSalary: value }))
+                      (value) => setForm(prev => ({ ...prev, undergraduateSalary: value })),
+                      false
                     )}
                   </div>
                 </div>
@@ -481,6 +431,18 @@ export default function LabEvaluatePage() {
                       "하루 평균 근무 시간 (시간)",
                       form.dailyWorkHours,
                       (value) => setForm(prev => ({ ...prev, dailyWorkHours: value }))
+                    )}
+                    {renderRadioGroup(
+                      "업무 강도",
+                      WORK_INTENSITY_OPTIONS,
+                      form.workIntensity,
+                      (value) => setForm(prev => ({ ...prev, workIntensity: value }))
+                    )}
+                    {renderRadioGroup(
+                      "출퇴근 시간",
+                      COMMUTE_IMPORTANCE_OPTIONS,
+                      form.commuteImportance,
+                      (value) => setForm(prev => ({ ...prev, commuteImportance: value }))
                     )}
                     {renderRadioGroup(
                       "주말/공휴일 근무 여부",
@@ -525,9 +487,9 @@ export default function LabEvaluatePage() {
                   </p>
                 </div>
 
-                {/* 5. 교수님 평가 */}
+                {/* 5. 지도 교수님 평가 */}
                 <div className="border-b pb-6">
-                  <h3 className="text-lg font-semibold mb-4">5. 교수님 평가</h3>
+                  <h3 className="text-lg font-semibold mb-4">5. 지도 교수님 평가</h3>
                   <div className="space-y-4">
                     {renderRadioGroup(
                       "연구 아이디어 수용도",
@@ -536,7 +498,7 @@ export default function LabEvaluatePage() {
                       (value) => setForm(prev => ({ ...prev, ideaAcceptance: value }))
                     )}
                     {renderRadioGroup(
-                      "멘토링/인성",
+                      "멘토링 및 인품",
                       MENTORING_STYLE_OPTIONS,
                       form.mentoringStyle,
                       (value) => setForm(prev => ({ ...prev, mentoringStyle: value }))
@@ -546,12 +508,6 @@ export default function LabEvaluatePage() {
                       RESEARCH_GUIDANCE_OPTIONS,
                       form.researchGuidance,
                       (value) => setForm(prev => ({ ...prev, researchGuidance: value }))
-                    )}
-                    {renderRadioGroup(
-                      "소통 방식",
-                      COMMUNICATION_STYLE_OPTIONS,
-                      form.communicationStyle,
-                      (value) => setForm(prev => ({ ...prev, communicationStyle: value }))
                     )}
                   </div>
                 </div>
@@ -591,7 +547,7 @@ export default function LabEvaluatePage() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setShowForm(false)}
+                    onClick={() => router.back()}
                     disabled={submitting}
                   >
                     취소
@@ -600,7 +556,49 @@ export default function LabEvaluatePage() {
               </form>
             </CardContent>
           </Card>
+        ) : (
+          /* 로그인 필요 메시지 */
+          <Card>
+            <CardHeader>
+              <CardTitle>연구실 평가하기</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <p className="text-gray-600 mb-6">
+                  평가를 작성하려면 로그인이 필요합니다.
+                </p>
+                <Button
+                  onClick={() => router.push('/login')}
+                  size="lg"
+                  className="px-8 py-3"
+                >
+                  로그인하고 평가하기
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         )}
+
+        {/* 평가 완료 후 확인 링크 */}
+        <div className="text-center mt-8">
+          <p className="text-gray-500 mb-2">
+            평가를 완료하신 후 다른 연구실 평가도 확인해보세요
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/labs/${labId}/view`)}
+            >
+              이 연구실 평가 확인하기
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => router.push('/')}
+            >
+              홈으로 돌아가기
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );
