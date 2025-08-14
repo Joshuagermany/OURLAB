@@ -56,15 +56,32 @@ create table if not exists lab_review (
   user_email text not null,
   user_name text not null,
   
-  -- 평가 항목들 (1-5점)
-  atmosphere int check (atmosphere >= 1 and atmosphere <= 5),
-  work_life_balance int check (work_life_balance >= 1 and work_life_balance <= 5),
-  professor_communication int check (professor_communication >= 1 and professor_communication <= 5),
-  research_environment int check (research_environment >= 1 and research_environment <= 5),
-  overall_satisfaction int check (overall_satisfaction >= 1 and overall_satisfaction <= 5),
+  -- 1. 연구실의 분위기
+  atmosphere_level text check (atmosphere_level in ('매우 엄격함', '엄격한 편', '무난함', '프리함', '매우 프리함')),
   
-  -- 코멘트
-  comment text,
+  -- 2. 인건비 지급
+  phd_salary text check (phd_salary in ('학비만 지급', '학비+생활비 지급', '학비+생활비+용돈 지급')),
+  master_salary text check (master_salary in ('학비만 지급', '학비+생활비 지급', '학비+생활비+용돈 지급')),
+  undergraduate_salary text check (undergraduate_salary in ('미지급', '소정의 연구비 지급')),
+  
+  -- 3. 업무 강도 / 워라밸
+  daily_work_hours int check (daily_work_hours >= 0 and daily_work_hours <= 24),
+  weekend_work text check (weekend_work in ('자주 있음', '종종 있음', '거의 없음')),
+  overtime_frequency text check (overtime_frequency in ('자주 있음', '종종 있음', '거의 없음')),
+  
+  -- 4. 선배들의 진로 (최근 10명 졸업생 기준)
+  career_corporate int check (career_corporate >= 0 and career_corporate <= 10),
+  career_professor int check (career_professor >= 0 and career_professor <= 10),
+  career_others int check (career_others >= 0 and career_others <= 10),
+  
+  -- 5. 교수님 평가
+  idea_acceptance text check (idea_acceptance in ('학생 아이디어 적극 수용', '일부만 수용', '거의 수용하지 않음')),
+  mentoring_style text check (mentoring_style in ('매우 친절하고 배려심 많음', '중립적', '까다로운 편', '비협조적')),
+  research_guidance text check (research_guidance in ('큰 방향만 제시', '자율 진행 후 필요 시 보고', '세부 업무까지 직접 관여')),
+  communication_style text check (communication_style in ('이메일/메신저 위주', '직접 대면 위주', '수시 연락 가능')),
+  
+  -- 6. 연구실의 장점 및 단점
+  pros_cons text,
   
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
@@ -83,12 +100,29 @@ create or replace view lab_review_summary as
 select 
   lab_id,
   count(*) as review_count,
-  round(avg(atmosphere), 2) as avg_atmosphere,
-  round(avg(work_life_balance), 2) as avg_work_life_balance,
-  round(avg(professor_communication), 2) as avg_professor_communication,
-  round(avg(research_environment), 2) as avg_research_environment,
-  round(avg(overall_satisfaction), 2) as avg_overall_satisfaction,
-  round(avg((atmosphere + work_life_balance + professor_communication + research_environment + overall_satisfaction) / 5.0), 2) as avg_total_score
+  -- 연구실 분위기 분포
+  mode() within group (order by atmosphere_level) as most_common_atmosphere,
+  
+  -- 인건비 지급 현황
+  mode() within group (order by phd_salary) as most_common_phd_salary,
+  mode() within group (order by master_salary) as most_common_master_salary,
+  mode() within group (order by undergraduate_salary) as most_common_undergraduate_salary,
+  
+  -- 업무 강도 평균
+  round(avg(daily_work_hours), 1) as avg_daily_work_hours,
+  mode() within group (order by weekend_work) as most_common_weekend_work,
+  mode() within group (order by overtime_frequency) as most_common_overtime_frequency,
+  
+  -- 선배 진로 평균
+  round(avg(career_corporate), 1) as avg_career_corporate,
+  round(avg(career_professor), 1) as avg_career_professor,
+  round(avg(career_others), 1) as avg_career_others,
+  
+  -- 교수님 평가 분포
+  mode() within group (order by idea_acceptance) as most_common_idea_acceptance,
+  mode() within group (order by mentoring_style) as most_common_mentoring_style,
+  mode() within group (order by research_guidance) as most_common_research_guidance,
+  mode() within group (order by communication_style) as most_common_communication_style
 from lab_review
 group by lab_id;
 

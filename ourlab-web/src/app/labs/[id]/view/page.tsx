@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Star, ArrowLeft, ExternalLink, MessageSquare, Plus } from "lucide-react";
+import { Star, ArrowLeft, ExternalLink, MessageSquare } from "lucide-react";
 
 interface Lab {
   id: number;
@@ -16,27 +16,44 @@ interface Lab {
 
 interface ReviewSummary {
   review_count: number;
-  avg_atmosphere: number | null;
-  avg_work_life_balance: number | null;
-  avg_professor_communication: number | null;
-  avg_research_environment: number | null;
-  avg_overall_satisfaction: number | null;
-  avg_total_score: number | null;
+  most_common_atmosphere: string | null;
+  most_common_phd_salary: string | null;
+  most_common_master_salary: string | null;
+  most_common_undergraduate_salary: string | null;
+  avg_daily_work_hours: number | null;
+  most_common_weekend_work: string | null;
+  most_common_overtime_frequency: string | null;
+  avg_career_corporate: number | null;
+  avg_career_professor: number | null;
+  avg_career_others: number | null;
+  most_common_idea_acceptance: string | null;
+  most_common_mentoring_style: string | null;
+  most_common_research_guidance: string | null;
+  most_common_communication_style: string | null;
 }
 
 interface Review {
   id: number;
   user_name: string;
-  atmosphere: number;
-  work_life_balance: number;
-  professor_communication: number;
-  research_environment: number;
-  overall_satisfaction: number;
-  comment: string;
+  atmosphere_level: string;
+  phd_salary: string;
+  master_salary: string;
+  undergraduate_salary: string;
+  daily_work_hours: number;
+  weekend_work: string;
+  overtime_frequency: string;
+  career_corporate: number;
+  career_professor: number;
+  career_others: number;
+  idea_acceptance: string;
+  mentoring_style: string;
+  research_guidance: string;
+  communication_style: string;
+  pros_cons: string;
   created_at: string;
 }
 
-export default function LabDetailPage() {
+export default function LabViewPage() {
   const params = useParams();
   const router = useRouter();
   const labId = params.id as string;
@@ -46,12 +63,10 @@ export default function LabDetailPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     fetchLabData();
     fetchReviews();
-    fetchUserData();
   }, [labId]);
 
   const fetchLabData = async () => {
@@ -82,46 +97,12 @@ export default function LabDetailPage() {
     }
   };
 
-  const fetchUserData = async () => {
-    try {
-      const response = await fetch('http://localhost:3001/api/auth/status', {
-        credentials: 'include'
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data.authenticated && data.user) {
-          setUser(data.user);
-        }
-      }
-    } catch (error) {
-      console.error("사용자 정보 조회 오류:", error);
-    }
-  };
-
-  const renderStars = (score: number | null) => {
-    if (score === null) return <span className="text-gray-400">평가 없음</span>;
-    
-    return (
-      <div className="flex items-center gap-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            className={`w-4 h-4 ${
-              star <= score ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
-            }`}
-          />
-        ))}
-        <span className="ml-2 text-sm font-medium">{score.toFixed(1)}</span>
-      </div>
-    );
+  const renderValue = (value: string | number | null) => {
+    if (value === null || value === undefined) return <span className="text-gray-400">평가 없음</span>;
+    return <span className="text-sm font-medium">{value}</span>;
   };
 
   const renderReviewCard = (review: Review) => {
-    const totalScore = (
-      (review.atmosphere + review.work_life_balance + review.professor_communication + 
-       review.research_environment + review.overall_satisfaction) / 5
-    ).toFixed(1);
-
     return (
       <Card key={review.id} className="mb-4">
         <CardHeader className="pb-3">
@@ -132,42 +113,58 @@ export default function LabDetailPage() {
                 {new Date(review.created_at).toLocaleDateString('ko-KR')}
               </p>
             </div>
-            <div className="flex items-center gap-1">
-              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-              <span className="text-sm font-medium">{totalScore}</span>
-            </div>
           </div>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-sm">
             <div>
               <span className="text-gray-600">연구실 분위기:</span>
-              <div className="flex items-center gap-1 mt-1">
-                {renderStars(review.atmosphere)}
-              </div>
+              <div className="mt-1">{renderValue(review.atmosphere_level)}</div>
             </div>
             <div>
-              <span className="text-gray-600">워라밸:</span>
-              <div className="flex items-center gap-1 mt-1">
-                {renderStars(review.work_life_balance)}
-              </div>
+              <span className="text-gray-600">하루 평균 근무시간:</span>
+              <div className="mt-1">{renderValue(review.daily_work_hours)}시간</div>
             </div>
             <div>
-              <span className="text-gray-600">지도교수 커뮤니케이션:</span>
-              <div className="flex items-center gap-1 mt-1">
-                {renderStars(review.professor_communication)}
-              </div>
+              <span className="text-gray-600">박사생 인건비:</span>
+              <div className="mt-1">{renderValue(review.phd_salary)}</div>
             </div>
             <div>
-              <span className="text-gray-600">연구 환경:</span>
-              <div className="flex items-center gap-1 mt-1">
-                {renderStars(review.research_environment)}
-              </div>
+              <span className="text-gray-600">석사생 인건비:</span>
+              <div className="mt-1">{renderValue(review.master_salary)}</div>
+            </div>
+            <div>
+              <span className="text-gray-600">주말 근무:</span>
+              <div className="mt-1">{renderValue(review.weekend_work)}</div>
+            </div>
+            <div>
+              <span className="text-gray-600">야근 빈도:</span>
+              <div className="mt-1">{renderValue(review.overtime_frequency)}</div>
+            </div>
+            <div>
+              <span className="text-gray-600">선배 진로 (대기업/교수/기타):</span>
+              <div className="mt-1">{renderValue(`${review.career_corporate}/${review.career_professor}/${review.career_others}명`)}</div>
+            </div>
+            <div>
+              <span className="text-gray-600">아이디어 수용도:</span>
+              <div className="mt-1">{renderValue(review.idea_acceptance)}</div>
+            </div>
+            <div>
+              <span className="text-gray-600">멘토링 스타일:</span>
+              <div className="mt-1">{renderValue(review.mentoring_style)}</div>
+            </div>
+            <div>
+              <span className="text-gray-600">연구 지도:</span>
+              <div className="mt-1">{renderValue(review.research_guidance)}</div>
+            </div>
+            <div>
+              <span className="text-gray-600">소통 방식:</span>
+              <div className="mt-1">{renderValue(review.communication_style)}</div>
             </div>
           </div>
-          {review.comment && (
+          {review.pros_cons && (
             <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-              <p className="text-gray-700 whitespace-pre-wrap">{review.comment}</p>
+              <p className="text-gray-700 whitespace-pre-wrap">{review.pros_cons}</p>
             </div>
           )}
         </CardContent>
@@ -246,59 +243,64 @@ export default function LabDetailPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MessageSquare className="w-5 h-5" />
-                전체 평가 ({reviewSummary.review_count}개 리뷰)
+                전체 평가 요약 ({reviewSummary.review_count}개 리뷰)
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                <div>
-                  <span className="text-sm text-gray-600">전체 만족도</span>
-                  <div className="mt-1">{renderStars(reviewSummary.avg_total_score)}</div>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div>
                   <span className="text-sm text-gray-600">연구실 분위기</span>
-                  <div className="mt-1">{renderStars(reviewSummary.avg_atmosphere)}</div>
+                  <div className="mt-1">{renderValue(reviewSummary.most_common_atmosphere)}</div>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-600">워라밸</span>
-                  <div className="mt-1">{renderStars(reviewSummary.avg_work_life_balance)}</div>
+                  <span className="text-sm text-gray-600">평균 근무시간</span>
+                  <div className="mt-1">{renderValue(reviewSummary.avg_daily_work_hours)}시간</div>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-600">지도교수 커뮤니케이션</span>
-                  <div className="mt-1">{renderStars(reviewSummary.avg_professor_communication)}</div>
+                  <span className="text-sm text-gray-600">박사생 인건비</span>
+                  <div className="mt-1">{renderValue(reviewSummary.most_common_phd_salary)}</div>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-600">연구 환경</span>
-                  <div className="mt-1">{renderStars(reviewSummary.avg_research_environment)}</div>
+                  <span className="text-sm text-gray-600">석사생 인건비</span>
+                  <div className="mt-1">{renderValue(reviewSummary.most_common_master_salary)}</div>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-600">전체 만족도</span>
-                  <div className="mt-1">{renderStars(reviewSummary.avg_overall_satisfaction)}</div>
+                  <span className="text-sm text-gray-600">주말 근무</span>
+                  <div className="mt-1">{renderValue(reviewSummary.most_common_weekend_work)}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-600">야근 빈도</span>
+                  <div className="mt-1">{renderValue(reviewSummary.most_common_overtime_frequency)}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-600">선배 진로 (평균)</span>
+                  <div className="mt-1">
+                    대기업 {renderValue(reviewSummary.avg_career_corporate)}명, 
+                    교수 {renderValue(reviewSummary.avg_career_professor)}명, 
+                    기타 {renderValue(reviewSummary.avg_career_others)}명
+                  </div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-600">아이디어 수용도</span>
+                  <div className="mt-1">{renderValue(reviewSummary.most_common_idea_acceptance)}</div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-600">멘토링 스타일</span>
+                  <div className="mt-1">{renderValue(reviewSummary.most_common_mentoring_style)}</div>
                 </div>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* 리뷰 작성 버튼 */}
-        <div className="mb-6">
-          {user ? (
-            <Button
-              onClick={() => router.push(`/labs/${labId}/review`)}
-              className="w-full md:w-auto"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              리뷰 작성하기
-            </Button>
-          ) : (
-            <Button
-              onClick={() => router.push('/login')}
-              className="w-full md:w-auto"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              로그인하고 리뷰 작성하기
-            </Button>
-          )}
+        {/* 평가 작성 버튼 */}
+        <div className="mb-6 text-center">
+          <Button
+            onClick={() => router.push(`/labs/${labId}/evaluate`)}
+            className="px-6 py-2"
+          >
+            이 연구실 평가하기
+          </Button>
         </div>
 
         {/* 리뷰 목록 */}
@@ -310,7 +312,7 @@ export default function LabDetailPage() {
           {reviews.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center text-gray-500">
-                아직 리뷰가 없습니다. 첫 번째 리뷰를 작성해보세요!
+                아직 리뷰가 없습니다.
               </CardContent>
             </Card>
           ) : (

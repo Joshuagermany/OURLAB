@@ -19,12 +19,21 @@ export async function GET(
       SELECT 
         id,
         user_name,
-        atmosphere,
-        work_life_balance,
-        professor_communication,
-        research_environment,
-        overall_satisfaction,
-        comment,
+        atmosphere_level,
+        phd_salary,
+        master_salary,
+        undergraduate_salary,
+        daily_work_hours,
+        weekend_work,
+        overtime_frequency,
+        career_corporate,
+        career_professor,
+        career_others,
+        idea_acceptance,
+        mentoring_style,
+        research_guidance,
+        communication_style,
+        pros_cons,
         created_at
       FROM lab_review
       WHERE lab_id = $1
@@ -74,12 +83,21 @@ export async function POST(
     const {
       userEmail,
       userName,
-      atmosphere,
-      workLifeBalance,
-      professorCommunication,
-      researchEnvironment,
-      overallSatisfaction,
-      comment
+      atmosphereLevel,
+      phdSalary,
+      masterSalary,
+      undergraduateSalary,
+      dailyWorkHours,
+      weekendWork,
+      overtimeFrequency,
+      careerCorporate,
+      careerProfessor,
+      careerOthers,
+      ideaAcceptance,
+      mentoringStyle,
+      researchGuidance,
+      communicationStyle,
+      prosCons
     } = body;
 
     // 필수 필드 검증
@@ -90,15 +108,23 @@ export async function POST(
       );
     }
 
-    // 점수 검증 (1-5점)
-    const scores = [atmosphere, workLifeBalance, professorCommunication, researchEnvironment, overallSatisfaction];
-    for (const score of scores) {
-      if (score < 1 || score > 5) {
-        return Response.json(
-          { error: "모든 점수는 1-5점 사이여야 합니다." },
-          { status: 400 }
-        );
-      }
+    // 필수 필드 검증
+    if (!atmosphereLevel || !phdSalary || !masterSalary || !undergraduateSalary || 
+        dailyWorkHours === undefined || !weekendWork || !overtimeFrequency ||
+        careerCorporate === undefined || careerProfessor === undefined || careerOthers === undefined ||
+        !ideaAcceptance || !mentoringStyle || !researchGuidance || !communicationStyle) {
+      return Response.json(
+        { error: "모든 필수 항목을 입력해주세요." },
+        { status: 400 }
+      );
+    }
+
+    // 진로 합계 검증 (10명)
+    if (careerCorporate + careerProfessor + careerOthers !== 10) {
+      return Response.json(
+        { error: "선배 진로 합계는 10명이어야 합니다." },
+        { status: 400 }
+      );
     }
 
     // 연구실 존재 여부 확인
@@ -115,18 +141,29 @@ export async function POST(
     // 리뷰 작성 (UPSERT - 기존 리뷰가 있으면 업데이트)
     const upsertSql = `
       INSERT INTO lab_review (
-        lab_id, user_email, user_name, atmosphere, work_life_balance, 
-        professor_communication, research_environment, overall_satisfaction, comment
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        lab_id, user_email, user_name, atmosphere_level, phd_salary, master_salary, 
+        undergraduate_salary, daily_work_hours, weekend_work, overtime_frequency,
+        career_corporate, career_professor, career_others, idea_acceptance,
+        mentoring_style, research_guidance, communication_style, pros_cons
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
       ON CONFLICT (lab_id, user_email) 
       DO UPDATE SET
         user_name = EXCLUDED.user_name,
-        atmosphere = EXCLUDED.atmosphere,
-        work_life_balance = EXCLUDED.work_life_balance,
-        professor_communication = EXCLUDED.professor_communication,
-        research_environment = EXCLUDED.research_environment,
-        overall_satisfaction = EXCLUDED.overall_satisfaction,
-        comment = EXCLUDED.comment,
+        atmosphere_level = EXCLUDED.atmosphere_level,
+        phd_salary = EXCLUDED.phd_salary,
+        master_salary = EXCLUDED.master_salary,
+        undergraduate_salary = EXCLUDED.undergraduate_salary,
+        daily_work_hours = EXCLUDED.daily_work_hours,
+        weekend_work = EXCLUDED.weekend_work,
+        overtime_frequency = EXCLUDED.overtime_frequency,
+        career_corporate = EXCLUDED.career_corporate,
+        career_professor = EXCLUDED.career_professor,
+        career_others = EXCLUDED.career_others,
+        idea_acceptance = EXCLUDED.idea_acceptance,
+        mentoring_style = EXCLUDED.mentoring_style,
+        research_guidance = EXCLUDED.research_guidance,
+        communication_style = EXCLUDED.communication_style,
+        pros_cons = EXCLUDED.pros_cons,
         updated_at = NOW()
       RETURNING id, created_at, updated_at
     `;
@@ -135,12 +172,21 @@ export async function POST(
       labId,
       userEmail,
       userName,
-      atmosphere,
-      workLifeBalance,
-      professorCommunication,
-      researchEnvironment,
-      overallSatisfaction,
-      comment
+      atmosphereLevel,
+      phdSalary,
+      masterSalary,
+      undergraduateSalary,
+      dailyWorkHours,
+      weekendWork,
+      overtimeFrequency,
+      careerCorporate,
+      careerProfessor,
+      careerOthers,
+      ideaAcceptance,
+      mentoringStyle,
+      researchGuidance,
+      communicationStyle,
+      prosCons
     ]);
 
     return Response.json({

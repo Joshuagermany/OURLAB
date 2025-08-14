@@ -456,8 +456,14 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
                       key={lab.id} 
                       className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
                       onClick={() => {
-                        // 연구실 상세 페이지로 이동
-                        window.location.href = `/labs/${lab.id}`;
+                        // variant에 따라 다른 페이지로 이동
+                        if (variant === "write") {
+                          // 평가용 페이지로 이동
+                          window.location.href = `/labs/${lab.id}/evaluate`;
+                        } else {
+                          // 확인용 페이지로 이동
+                          window.location.href = `/labs/${lab.id}/view`;
+                        }
                       }}
                     >
                       <div className="flex justify-between items-start">

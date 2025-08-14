@@ -15,12 +15,21 @@ export async function PUT(
     const {
       userEmail,
       userName,
-      atmosphere,
-      workLifeBalance,
-      professorCommunication,
-      researchEnvironment,
-      overallSatisfaction,
-      comment
+      atmosphereLevel,
+      phdSalary,
+      masterSalary,
+      undergraduateSalary,
+      dailyWorkHours,
+      weekendWork,
+      overtimeFrequency,
+      careerCorporate,
+      careerProfessor,
+      careerOthers,
+      ideaAcceptance,
+      mentoringStyle,
+      researchGuidance,
+      communicationStyle,
+      prosCons
     } = body;
 
     // 필수 필드 검증
@@ -31,15 +40,23 @@ export async function PUT(
       );
     }
 
-    // 점수 검증 (1-5점)
-    const scores = [atmosphere, workLifeBalance, professorCommunication, researchEnvironment, overallSatisfaction];
-    for (const score of scores) {
-      if (score < 1 || score > 5) {
-        return Response.json(
-          { error: "모든 점수는 1-5점 사이여야 합니다." },
-          { status: 400 }
-        );
-      }
+    // 필수 필드 검증
+    if (!atmosphereLevel || !phdSalary || !masterSalary || !undergraduateSalary || 
+        dailyWorkHours === undefined || !weekendWork || !overtimeFrequency ||
+        careerCorporate === undefined || careerProfessor === undefined || careerOthers === undefined ||
+        !ideaAcceptance || !mentoringStyle || !researchGuidance || !communicationStyle) {
+      return Response.json(
+        { error: "모든 필수 항목을 입력해주세요." },
+        { status: 400 }
+      );
+    }
+
+    // 진로 합계 검증 (10명)
+    if (careerCorporate + careerProfessor + careerOthers !== 10) {
+      return Response.json(
+        { error: "선배 진로 합계는 10명이어야 합니다." },
+        { status: 400 }
+      );
     }
 
     // 리뷰 존재 여부 및 권한 확인
@@ -60,25 +77,43 @@ export async function PUT(
     const updateSql = `
       UPDATE lab_review SET
         user_name = $1,
-        atmosphere = $2,
-        work_life_balance = $3,
-        professor_communication = $4,
-        research_environment = $5,
-        overall_satisfaction = $6,
-        comment = $7,
+        atmosphere_level = $2,
+        phd_salary = $3,
+        master_salary = $4,
+        undergraduate_salary = $5,
+        daily_work_hours = $6,
+        weekend_work = $7,
+        overtime_frequency = $8,
+        career_corporate = $9,
+        career_professor = $10,
+        career_others = $11,
+        idea_acceptance = $12,
+        mentoring_style = $13,
+        research_guidance = $14,
+        communication_style = $15,
+        pros_cons = $16,
         updated_at = NOW()
-      WHERE id = $8 AND lab_id = $9 AND user_email = $10
+      WHERE id = $17 AND lab_id = $18 AND user_email = $19
       RETURNING id, created_at, updated_at
     `;
 
     const result = await query(updateSql, [
       userName,
-      atmosphere,
-      workLifeBalance,
-      professorCommunication,
-      researchEnvironment,
-      overallSatisfaction,
-      comment,
+      atmosphereLevel,
+      phdSalary,
+      masterSalary,
+      undergraduateSalary,
+      dailyWorkHours,
+      weekendWork,
+      overtimeFrequency,
+      careerCorporate,
+      careerProfessor,
+      careerOthers,
+      ideaAcceptance,
+      mentoringStyle,
+      researchGuidance,
+      communicationStyle,
+      prosCons,
       reviewId,
       labId,
       userEmail
