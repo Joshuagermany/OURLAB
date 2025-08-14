@@ -249,8 +249,10 @@ app.get('/api/auth/status', (req, res) => {
 // 메모리 기반 데이터 저장소 (실제 프로덕션에서는 데이터베이스 사용)
 let posts = [];
 let comments = [];
+let replies = []; // 대댓글 저장소
 let postIdCounter = 1;
 let commentIdCounter = 1;
+let replyIdCounter = 1;
 let userAnonymousMap = new Map(); // 사용자별 익명 번호 매핑 (게시글별)
 let postAnonymousCounter = new Map(); // 게시글별 익명 번호 카운터
 let postViews = new Map(); // 게시글 조회수: { postId: number }
@@ -329,10 +331,16 @@ app.get('/api/posts/:id/comments', (req, res) => {
   // 먼저 단 댓글이 위에 오도록 정렬 (createdAt 기준 오름차순)
   postComments.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
   
-  // 댓글 목록 반환
-  const commentsList = postComments.map(comment => ({
-    ...comment
-  }));
+  // 각 댓글에 대댓글 추가
+  const commentsList = postComments.map(comment => {
+    const commentReplies = replies.filter(reply => reply.commentId === comment.id);
+    commentReplies.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    
+    return {
+      ...comment,
+      replies: commentReplies
+    };
+  });
   
   res.json({
     comments: commentsList
@@ -382,6 +390,60 @@ app.post('/api/posts/:id/comments', isAuthenticated, (req, res) => {
   res.json({
     message: '댓글이 작성되었습니다.',
     comment: newComment
+  });
+});
+
+// 대댓글 작성
+app.post('/api/posts/:postId/comments/:commentId/replies', isAuthenticated, (req, res) => {
+  const { content } = req.body;
+  const postId = req.params.postId;
+  const commentId = req.params.commentId;
+  
+  if (!content) {
+    return res.status(400).json({ message: '대댓글 내용을 입력해주세요.' });
+  }
+  
+  // 게시글이 존재하는지 확인
+  const post = posts.find(p => p.id === postId);
+  if (!post) {
+    return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
+  }
+  
+  // 댓글이 존재하는지 확인
+  const comment = comments.find(c => c.id === commentId && c.postId === postId);
+  if (!comment) {
+    return res.status(404).json({ message: '댓글을 찾을 수 없습니다.' });
+  }
+  
+  // 사용자별 익명 번호 할당 (게시글별로 독립적)
+  const userKey = `${postId}:${req.user.email}`;
+  let anonymousNumber = userAnonymousMap.get(userKey);
+  
+  if (!anonymousNumber) {
+    // 해당 게시글의 현재 익명 번호 카운터 가져오기
+    let currentCounter = postAnonymousCounter.get(postId) || 0;
+    currentCounter++;
+    postAnonymousCounter.set(postId, currentCounter);
+    anonymousNumber = currentCounter;
+    userAnonymousMap.set(userKey, anonymousNumber);
+  }
+  
+  const newReply = {
+    id: replyIdCounter.toString(),
+    postId: postId,
+    commentId: commentId,
+    content: content.trim(),
+    author: `익명${anonymousNumber}`,
+    authorEmail: req.user.email,
+    createdAt: new Date().toISOString()
+  };
+  
+  replies.push(newReply);
+  replyIdCounter++;
+  
+  res.json({
+    message: '대댓글이 작성되었습니다.',
+    reply: newReply
   });
 });
 

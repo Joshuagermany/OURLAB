@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { MessageSquare } from "lucide-react"
 
 interface Post {
   id: string
@@ -22,6 +23,15 @@ interface Comment {
   author: string
   authorEmail: string
   createdAt: string
+  replies?: Reply[]
+}
+
+interface Reply {
+  id: string
+  content: string
+  author: string
+  authorEmail: string
+  createdAt: string
 }
 
 export default function PostDetailPage() {
@@ -32,8 +42,11 @@ export default function PostDetailPage() {
   const [post, setPost] = useState<Post | null>(null)
   const [comments, setComments] = useState<Comment[]>([])
   const [newComment, setNewComment] = useState("")
+  const [newReplies, setNewReplies] = useState<{ [commentId: string]: string }>({})
+  const [showReplyForms, setShowReplyForms] = useState<{ [commentId: string]: boolean }>({})
   const [loading, setLoading] = useState(true)
   const [commentLoading, setCommentLoading] = useState(false)
+  const [replyLoading, setReplyLoading] = useState<{ [commentId: string]: boolean }>({})
   const [user, setUser] = useState<any>(null)
 
 
@@ -102,7 +115,7 @@ export default function PostDetailPage() {
 
       if (response.ok) {
         const data = await response.json()
-        setComments(prev => [...prev, data.comment])
+        setComments(prev => [...prev, { ...data.comment, replies: [] }])
         setNewComment("")
       } else {
         const error = await response.json()
@@ -113,6 +126,61 @@ export default function PostDetailPage() {
       alert('댓글 작성 중 오류가 발생했습니다.')
     } finally {
       setCommentLoading(false)
+    }
+  }
+
+  const handleReplySubmit = async (commentId: string, e: React.FormEvent) => {
+    e.preventDefault()
+    
+    const replyContent = newReplies[commentId]
+    if (!replyContent?.trim()) {
+      alert('대댓글 내용을 입력해주세요.')
+      return
+    }
+
+    setReplyLoading(prev => ({ ...prev, [commentId]: true }))
+
+    try {
+      const response = await fetch(`http://localhost:3001/api/posts/${postId}/comments/${commentId}/replies`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          content: replyContent.trim()
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setComments(prev => prev.map(comment => {
+          if (comment.id === commentId) {
+            return {
+              ...comment,
+              replies: [...(comment.replies || []), data.reply]
+            }
+          }
+          return comment
+        }))
+        setNewReplies(prev => ({ ...prev, [commentId]: "" }))
+        setShowReplyForms(prev => ({ ...prev, [commentId]: false }))
+      } else {
+        const error = await response.json()
+        alert(`대댓글 작성 실패: ${error.message}`)
+      }
+    } catch (err) {
+      console.error('대댓글 작성 실패:', err)
+      alert('대댓글 작성 중 오류가 발생했습니다.')
+    } finally {
+      setReplyLoading(prev => ({ ...prev, [commentId]: false }))
+    }
+  }
+
+  const toggleReplyForm = (commentId: string) => {
+    setShowReplyForms(prev => ({ ...prev, [commentId]: !prev[commentId] }))
+    if (!showReplyForms[commentId]) {
+      setNewReplies(prev => ({ ...prev, [commentId]: "" }))
     }
   }
 
@@ -177,7 +245,10 @@ export default function PostDetailPage() {
       {user ? (
         <Card className="mb-8 w-full">
           <CardHeader>
-            <CardTitle className="text-lg">댓글 작성</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <MessageSquare className="w-5 h-5" />
+              댓글 작성
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleCommentSubmit}>
@@ -228,10 +299,75 @@ export default function PostDetailPage() {
                   <span className="font-medium text-gray-900">{comment.author}</span>
                   <span className="text-sm text-gray-500">{formatDate(comment.createdAt)}</span>
                 </div>
-                <div className="whitespace-pre-wrap text-gray-700">
+                <div className="whitespace-pre-wrap text-gray-700 mb-4">
                   {comment.content}
                 </div>
+                
+                {/* 대댓글 버튼 */}
+                {user && (
+                  <div className="mb-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleReplyForm(comment.id)}
+                      className="text-gray-600 hover:text-gray-700 p-0 h-auto border-0 flex items-center gap-1"
+                    >
+                      <MessageSquare className="w-3 h-3" />
+                      {showReplyForms[comment.id] ? '취소' : '대댓글'}
+                    </Button>
+                  </div>
+                )}
 
+                {/* 대댓글 작성 폼 */}
+                {showReplyForms[comment.id] && user && (
+                  <div className="ml-6 mb-4 p-3 bg-gray-50 rounded-lg">
+                    <form onSubmit={(e) => handleReplySubmit(comment.id, e)}>
+                      <textarea
+                        value={newReplies[comment.id] || ""}
+                        onChange={(e) => setNewReplies(prev => ({ ...prev, [comment.id]: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        rows={2}
+                        placeholder="대댓글을 입력하세요"
+                        required
+                      />
+                      <div className="mt-2 flex justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => toggleReplyForm(comment.id)}
+                        >
+                          취소
+                        </Button>
+                        <Button
+                          type="submit"
+                          size="sm"
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                          disabled={replyLoading[comment.id]}
+                        >
+                          {replyLoading[comment.id] ? '작성 중...' : '대댓글 작성'}
+                        </Button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+
+                {/* 대댓글 목록 */}
+                {comment.replies && comment.replies.length > 0 && (
+                  <div className="ml-6 space-y-3">
+                    {comment.replies.map((reply) => (
+                      <div key={reply.id} className="p-3 bg-gray-50 rounded-lg">
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="font-medium text-gray-900 text-sm">{reply.author}</span>
+                          <span className="text-xs text-gray-500">{formatDate(reply.createdAt)}</span>
+                        </div>
+                        <div className="whitespace-pre-wrap text-gray-700 text-sm">
+                          {reply.content}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))
