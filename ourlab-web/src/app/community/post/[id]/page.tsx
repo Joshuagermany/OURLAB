@@ -266,7 +266,7 @@ export default function PostDetailPage() {
     <div className="mx-auto px-4 py-8" style={{ maxWidth: '1920px', minWidth: '960px' }}>
       <div className="mb-6">
         <Link href="/community">
-          <Button variant="outline" className="mb-4">
+          <Button variant="outline" className="mb-4 hover:bg-gray-100">
             ← 커뮤니티로 돌아가기
           </Button>
         </Link>
@@ -404,6 +404,7 @@ export default function PostDetailPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => toggleReplyForm(comment.id)}
+                          className="hover:bg-gray-100"
                         >
                           취소
                         </Button>

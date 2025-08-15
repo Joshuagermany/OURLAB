@@ -125,6 +125,7 @@ export default function WritePostPage() {
                 variant="outline"
                 onClick={() => router.back()}
                 disabled={loading}
+                className="hover:bg-gray-100"
               >
                 취소
               </Button>

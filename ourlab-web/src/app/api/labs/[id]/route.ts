@@ -43,7 +43,14 @@ export async function GET(
       SELECT * FROM lab_review_summary WHERE lab_id = $1
     `;
     
+    // 연구실 상세 통계 정보 조회 (진행바용)
+    const detailedStatsSql = `
+      SELECT * FROM lab_review_detailed_stats WHERE lab_id = $1
+    `;
+    
     const reviewSummaryResult = await query(reviewSummarySql, [labId]);
+    const detailedStatsResult = await query(detailedStatsSql, [labId]);
+    
     const reviewSummary = reviewSummaryResult.rows[0] || {
       review_count: 0,
       avg_atmosphere: null,
@@ -53,10 +60,29 @@ export async function GET(
       avg_overall_satisfaction: null,
       avg_total_score: null
     };
+    
+    const detailedStats = detailedStatsResult.rows[0] || {
+      review_count: 0,
+      rating_stats: {},
+      atmosphere_stats: {},
+      work_intensity_stats: {},
+      commute_importance_stats: {},
+      weekend_work_stats: {},
+      overtime_frequency_stats: {},
+      idea_acceptance_stats: {},
+      mentoring_style_stats: {},
+      research_guidance_stats: {}
+    };
+    
+    // 두 결과를 합침
+    const combinedReviewSummary = {
+      ...reviewSummary,
+      ...detailedStats
+    };
 
     return Response.json({
       lab,
-      reviewSummary
+      reviewSummary: combinedReviewSummary
     }, {
       headers: { "Cache-Control": "no-store, no-cache, must-revalidate, private" }
     });

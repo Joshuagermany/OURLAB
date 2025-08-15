@@ -123,6 +123,7 @@ export default function ProfilePage() {
             <Button 
               onClick={handleLogout}
               variant="outline"
+              className="hover:bg-gray-100"
             >
               로그아웃
             </Button>

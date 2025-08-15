@@ -83,6 +83,7 @@ export default function GoogleLoginButton() {
           onClick={handleLogout}
           variant="outline"
           size="sm"
+          className="hover:bg-gray-100"
         >
           로그아웃
         </Button>

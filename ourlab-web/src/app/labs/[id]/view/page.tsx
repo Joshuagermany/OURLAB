@@ -30,6 +30,17 @@ interface ReviewSummary {
   most_common_idea_acceptance: string | null;
   most_common_mentoring_style: string | null;
   most_common_research_guidance: string | null;
+  avg_rating?: number;
+  // 상세 통계 (진행바용)
+  rating_stats?: { [key: string]: number };
+  atmosphere_stats?: { [key: string]: number };
+  work_intensity_stats?: { [key: string]: number };
+  commute_importance_stats?: { [key: string]: number };
+  weekend_work_stats?: { [key: string]: number };
+  overtime_frequency_stats?: { [key: string]: number };
+  idea_acceptance_stats?: { [key: string]: number };
+  mentoring_style_stats?: { [key: string]: number };
+  research_guidance_stats?: { [key: string]: number };
 }
 
 interface Review {
@@ -206,7 +217,7 @@ export default function LabViewPage() {
         <Button
           variant="outline"
           onClick={() => router.back()}
-          className="mb-6"
+          className="mb-6 hover:bg-gray-100"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           뒤로 가기
@@ -230,6 +241,7 @@ export default function LabViewPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => window.open(lab.homepage_url, '_blank')}
+                  className="hover:bg-gray-100"
                 >
                   <ExternalLink className="w-4 h-4 mr-2" />
                   홈페이지
@@ -252,13 +264,13 @@ export default function LabViewPage() {
               {/* 평균 별점 */}
               <div className="mb-6">
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="text-2xl font-bold">3.00</span>
+                  <span className="text-2xl font-bold">{reviewSummary.avg_rating ? reviewSummary.avg_rating.toFixed(1) : '0.0'}</span>
                   <div className="flex gap-1">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star
                         key={star}
                         className={`w-5 h-5 ${
-                          star <= 3
+                          star <= (reviewSummary.avg_rating || 0)
                             ? 'fill-yellow-400 text-yellow-400'
                             : 'text-gray-300'
                         }`}
@@ -269,41 +281,47 @@ export default function LabViewPage() {
                 </div>
                 
                 {/* 별점 분포 */}
-                <div className="space-y-2">
-                  {[5, 4, 3, 2, 1].map((rating) => (
-                    <div key={rating} className="flex items-center gap-2">
-                      <span className="text-sm w-8">★ {rating}</span>
-                      <div className="flex-1 bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-yellow-400 h-2 rounded-full"
-                          style={{ width: `${rating === 5 ? 28 : rating === 4 ? 17 : rating === 3 ? 11 : rating === 2 ? 17 : 28}%` }}
-                        ></div>
-                      </div>
-                      <span className="text-sm text-gray-600 w-8">
-                        {rating === 5 ? 28 : rating === 4 ? 17 : rating === 3 ? 11 : rating === 2 ? 17 : 28}%
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                {reviewSummary.rating_stats && (
+                  <div className="space-y-2">
+                    {[5, 4, 3, 2, 1].map((rating) => {
+                      const percentage = reviewSummary.rating_stats[rating.toString()] || 0;
+                      return (
+                        <div key={rating} className="flex items-center gap-2">
+                          <span className="text-sm w-8">★ {rating}</span>
+                          <div className="flex-1 bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-yellow-400 h-2 rounded-full"
+                              style={{ width: `${Math.min(Math.max(percentage * 0.8, 16), 80)}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-sm text-gray-600 w-8">
+                            {percentage}%
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* 카테고리별 평가 */}
               <div className="space-y-4">
                 {/* 연구실 분위기 */}
                 <div className="flex items-start gap-4">
-                  <h4 className="text-sm font-medium text-gray-700 flex-shrink-0">연구실 분위기</h4>
+                  <h4 className="text-sm font-medium text-gray-700 flex-shrink-0 w-32">연구실 분위기</h4>
                   <div className="space-y-2 flex-1">
                     {['매우 엄격함', '엄격한 편', '무난함', '프리함', '매우 프리함'].map((option) => {
-                      const percentage = option === '프리함' ? 53 : option === '무난함' ? 47 : 0;
-                      const isSelected = option === '프리함';
+                      const percentage = reviewSummary.atmosphere_stats?.[option] || 0;
+                      const isSelected = percentage > 0;
                       return (
                         <div key={option} className="relative">
                           <div 
                             className={`px-3 py-2 rounded-lg text-sm font-medium text-white transition-all duration-200 ${
                               isSelected 
-                                ? 'bg-orange-500 w-20' 
-                                : 'bg-gray-700 w-16'
+                                ? 'bg-orange-500' 
+                                : 'bg-gray-700'
                             }`}
+                            style={{ width: `${Math.min(Math.max(percentage * 0.8, 16), 80)}%` }}
                           >
                             <span className="block truncate">{option}</span>
                             <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs">
@@ -318,19 +336,132 @@ export default function LabViewPage() {
 
                 {/* 업무 강도 */}
                 <div className="flex items-start gap-4">
-                  <h4 className="text-sm font-medium text-gray-700 flex-shrink-0">업무 강도</h4>
+                  <h4 className="text-sm font-medium text-gray-700 flex-shrink-0 w-32">업무 강도</h4>
                   <div className="space-y-2 flex-1">
                     {['강한 편', '무난한 편', '여유로운 편'].map((option) => {
-                      const percentage = option === '무난한 편' ? 71 : option === '강한 편' ? 29 : 0;
-                      const isSelected = option === '무난한 편';
+                      const percentage = reviewSummary.work_intensity_stats?.[option] || 0;
+                      const isSelected = percentage > 0;
                       return (
                         <div key={option} className="relative">
                           <div 
                             className={`px-3 py-2 rounded-lg text-sm font-medium text-white transition-all duration-200 ${
                               isSelected 
-                                ? 'bg-green-500 w-20' 
-                                : 'bg-gray-700 w-16'
+                                ? 'bg-green-500' 
+                                : 'bg-gray-700'
                             }`}
+                            style={{ width: `${Math.min(Math.max(percentage * 0.8, 16), 80)}%` }}
+                          >
+                            <span className="block truncate">{option}</span>
+                            <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs">
+                              {percentage}%
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 출퇴근 시간 */}
+                <div className="flex items-start gap-4">
+                  <h4 className="text-sm font-medium text-gray-700 flex-shrink-0 w-32">출퇴근 시간</h4>
+                  <div className="space-y-2 flex-1">
+                    {['맞춰야 함', '크게 중요하지 않음'].map((option) => {
+                      const percentage = reviewSummary.commute_importance_stats?.[option] || 0;
+                      const isSelected = percentage > 0;
+                      return (
+                        <div key={option} className="relative">
+                          <div 
+                            className={`px-3 py-2 rounded-lg text-sm font-medium text-white transition-all duration-200 ${
+                              isSelected 
+                                ? 'bg-purple-500' 
+                                : 'bg-gray-700'
+                            }`}
+                            style={{ width: `${Math.min(Math.max(percentage * 0.8, 16), 80)}%` }}
+                          >
+                            <span className="block truncate">{option}</span>
+                            <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs">
+                              {percentage}%
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 주말 근무 */}
+                <div className="flex items-start gap-4">
+                  <h4 className="text-sm font-medium text-gray-700 flex-shrink-0 w-32">주말 근무</h4>
+                  <div className="space-y-2 flex-1">
+                    {['자주 있음', '종종 있음', '거의 없음'].map((option) => {
+                      const percentage = reviewSummary.weekend_work_stats?.[option] || 0;
+                      const isSelected = percentage > 0;
+                      return (
+                        <div key={option} className="relative">
+                          <div 
+                            className={`px-3 py-2 rounded-lg text-sm font-medium text-white transition-all duration-200 ${
+                              isSelected 
+                                ? 'bg-red-500' 
+                                : 'bg-gray-700'
+                            }`}
+                            style={{ width: `${Math.min(Math.max(percentage * 0.8, 16), 80)}%` }}
+                          >
+                            <span className="block truncate">{option}</span>
+                            <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs">
+                              {percentage}%
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 야근 빈도 */}
+                <div className="flex items-start gap-4">
+                  <h4 className="text-sm font-medium text-gray-700 flex-shrink-0 w-32">야근 빈도</h4>
+                  <div className="space-y-2 flex-1">
+                    {['자주 있음', '종종 있음', '거의 없음'].map((option) => {
+                      const percentage = reviewSummary.overtime_frequency_stats?.[option] || 0;
+                      const isSelected = percentage > 0;
+                      return (
+                        <div key={option} className="relative">
+                          <div 
+                            className={`px-3 py-2 rounded-lg text-sm font-medium text-white transition-all duration-200 ${
+                              isSelected 
+                                ? 'bg-indigo-500' 
+                                : 'bg-gray-700'
+                            }`}
+                            style={{ width: `${Math.min(Math.max(percentage * 0.8, 16), 80)}%` }}
+                          >
+                            <span className="block truncate">{option}</span>
+                            <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs">
+                              {percentage}%
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 아이디어 수용도 */}
+                <div className="flex items-start gap-4">
+                  <h4 className="text-sm font-medium text-gray-700 flex-shrink-0 w-32">아이디어 수용도</h4>
+                  <div className="space-y-2 flex-1">
+                    {['학생 아이디어 적극 수용', '일부만 수용', '거의 수용하지 않음'].map((option) => {
+                      const percentage = reviewSummary.idea_acceptance_stats?.[option] || 0;
+                      const isSelected = percentage > 0;
+                      return (
+                        <div key={option} className="relative">
+                          <div 
+                            className={`px-3 py-2 rounded-lg text-sm font-medium text-white transition-all duration-200 ${
+                              isSelected 
+                                ? 'bg-teal-500' 
+                                : 'bg-gray-700'
+                            }`}
+                            style={{ width: `${Math.min(Math.max(percentage * 0.8, 16), 80)}%` }}
                           >
                             <span className="block truncate">{option}</span>
                             <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs">
@@ -345,19 +476,20 @@ export default function LabViewPage() {
 
                 {/* 멘토링 스타일 */}
                 <div className="flex items-start gap-4">
-                  <h4 className="text-sm font-medium text-gray-700 flex-shrink-0">멘토링 스타일</h4>
+                  <h4 className="text-sm font-medium text-gray-700 flex-shrink-0 w-32">멘토링 스타일</h4>
                   <div className="space-y-2 flex-1">
                     {['매우 친절하고 배려심 많음', '친절하신 편', '중립적', '까다로운 편', '비협조적'].map((option) => {
-                      const percentage = option === '중립적' ? 41 : option === '친절하신 편' ? 24 : option === '까다로운 편' ? 35 : 0;
-                      const isSelected = option === '중립적';
+                      const percentage = reviewSummary.mentoring_style_stats?.[option] || 0;
+                      const isSelected = percentage > 0;
                       return (
                         <div key={option} className="relative">
                           <div 
                             className={`px-3 py-2 rounded-lg text-sm font-medium text-white transition-all duration-200 ${
                               isSelected 
-                                ? 'bg-blue-500 w-20' 
-                                : 'bg-gray-700 w-16'
+                                ? 'bg-blue-500' 
+                                : 'bg-gray-700'
                             }`}
+                            style={{ width: `${Math.min(Math.max(percentage * 0.8, 16), 80)}%` }}
                           >
                             <span className="block truncate">{option}</span>
                             <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs">
@@ -370,30 +502,31 @@ export default function LabViewPage() {
                   </div>
                 </div>
 
-                {/* 주말 근무 */}
-                <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">주말 근무</h4>
-                  <div className="space-y-1">
-                    {['자주 있음', '종종 있음', '거의 없음'].map((option) => (
-                      <div key={option} className="flex items-center justify-between">
-                        <span className="text-sm flex items-center gap-1">
-                          {option}
-                          {option === '거의 없음' && <Check className="w-3 h-3 text-green-500" />}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 야근 빈도 */}
-                <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">야근 빈도</h4>
-                  <div className="space-y-1">
-                    {['자주 있음', '종종 있음', '거의 없음'].map((option) => (
-                      <div key={option} className="flex items-center justify-between">
-                        <span className="text-sm">{option}</span>
-                      </div>
-                    ))}
+                {/* 연구 지도 */}
+                <div className="flex items-start gap-4">
+                  <h4 className="text-sm font-medium text-gray-700 flex-shrink-0 w-32">연구 지도</h4>
+                  <div className="space-y-2 flex-1">
+                    {['큰 방향만 제시', '자율 진행 후 필요 시 보고', '세부 업무까지 직접 관여'].map((option) => {
+                      const percentage = reviewSummary.research_guidance_stats?.[option] || 0;
+                      const isSelected = percentage > 0;
+                      return (
+                        <div key={option} className="relative">
+                          <div 
+                            className={`px-3 py-2 rounded-lg text-sm font-medium text-white transition-all duration-200 ${
+                              isSelected 
+                                ? 'bg-pink-500' 
+                                : 'bg-gray-700'
+                            }`}
+                            style={{ width: `${Math.min(Math.max(percentage * 0.8, 16), 80)}%` }}
+                          >
+                            <span className="block truncate">{option}</span>
+                            <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs">
+                              {percentage}%
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

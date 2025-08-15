@@ -68,7 +68,7 @@ export default function NaverLoginButton() {
           )}
           <div className="text-sm">안녕하세요, {user.displayName}님!</div>
         </div>
-        <Button onClick={handleLogout} variant="outline" size="sm">로그아웃</Button>
+        <Button onClick={handleLogout} variant="outline" size="sm" className="hover:bg-gray-100">로그아웃</Button>
       </div>
     )
   }

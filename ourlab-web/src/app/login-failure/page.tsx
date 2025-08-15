@@ -28,7 +28,7 @@ export default function LoginFailurePage() {
               <Button className="w-full">다시 로그인하기</Button>
             </Link>
             <Link href="/">
-              <Button variant="outline" className="w-full">홈으로 돌아가기</Button>
+              <Button variant="outline" className="w-full hover:bg-gray-100">홈으로 돌아가기</Button>
             </Link>
           </div>
         </CardContent>

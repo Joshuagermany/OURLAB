@@ -333,7 +333,7 @@ export default function LabEvaluatePage() {
         <Button
           variant="outline"
           onClick={() => router.back()}
-          className="mb-6"
+          className="mb-6 hover:bg-gray-100"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           뒤로 가기
@@ -357,6 +357,7 @@ export default function LabEvaluatePage() {
                   variant="outline"
                   size="sm"
                   onClick={() => window.open(lab.homepage_url, '_blank')}
+                  className="hover:bg-gray-100"
                 >
                   <ExternalLink className="w-4 h-4 mr-2" />
                   홈페이지
@@ -399,7 +400,7 @@ export default function LabEvaluatePage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="-mt-3"
+                className="-mt-3 hover:bg-gray-100"
                 onClick={() => {
                   // 인증 기능 구현 예정
                   alert('학교 메일 인증 기능이 준비 중입니다.');
@@ -597,6 +598,7 @@ export default function LabEvaluatePage() {
                     variant="outline"
                     onClick={() => router.back()}
                     disabled={submitting}
+                    className="hover:bg-gray-100"
                   >
                     취소
                   </Button>
@@ -636,12 +638,14 @@ export default function LabEvaluatePage() {
             <Button
               variant="outline"
               onClick={() => router.push(`/labs/${labId}/view`)}
+              className="hover:bg-gray-100"
             >
               이 연구실 평가 확인하기
             </Button>
             <Button
               variant="outline"
               onClick={() => router.push('/')}
+              className="hover:bg-gray-100"
             >
               홈으로 돌아가기
             </Button>

@@ -69,7 +69,7 @@ export default function SocialLoginButtons() {
             안녕하세요, {user.displayName}님! ({user.provider})
           </div>
         </div>
-        <Button onClick={handleLogout} variant="outline" size="sm">로그아웃</Button>
+        <Button onClick={handleLogout} variant="outline" size="sm" className="hover:bg-gray-100">로그아웃</Button>
       </div>
     )
   }
