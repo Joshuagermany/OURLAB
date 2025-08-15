@@ -327,39 +327,26 @@ export default function LabEvaluatePage() {
           </CardHeader>
         </Card>
 
-        {/* 현재 평가 현황 */}
+        {/* 이 연구실을 나의 연구실로 등록 */}
         <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>현재 평가 현황</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle>이 연구실을 나의 연구실로 등록</CardTitle>
           </CardHeader>
-          <CardContent>
-            {reviewSummary && reviewSummary.review_count > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <span className="text-sm text-gray-600">총 리뷰 수</span>
-                  <div className="mt-1 text-lg font-semibold">{reviewSummary.review_count}개</div>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600">연구실 분위기</span>
-                  <div className="mt-1">{renderValue(reviewSummary.most_common_atmosphere)}</div>
-                </div>
-
-                <div>
-                  <span className="text-sm text-gray-600">업무 강도</span>
-                  <div className="mt-1">{renderValue(reviewSummary.most_common_work_intensity)}</div>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600">출퇴근 시간</span>
-                  <div className="mt-1">{renderValue(reviewSummary.most_common_commute_importance)}</div>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600">박사생 인건비</span>
-                  <div className="mt-1">{renderValue(reviewSummary.most_common_phd_salary)}</div>
-                </div>
-              </div>
-            ) : (
-              <p className="text-gray-500">아직 평가가 없습니다. 첫 번째 평가를 작성해보세요!</p>
-            )}
+          <CardContent className="pt-0 pb-5">
+            <div className="flex justify-between items-start">
+              <p className="text-gray-500">나의 연구실 등록은 학교 메일 인증 후 가능합니다.</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="-mt-3"
+                onClick={() => {
+                  // 인증 기능 구현 예정
+                  alert('학교 메일 인증 기능이 준비 중입니다.');
+                }}
+              >
+                대학교 인증하기
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
