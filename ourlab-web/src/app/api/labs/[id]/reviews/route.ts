@@ -34,6 +34,7 @@ export async function GET(
         mentoring_style,
         research_guidance,
         pros_cons,
+        rating,
         created_at
       FROM lab_review
       WHERE lab_id = $1
@@ -97,7 +98,8 @@ export async function POST(
       ideaAcceptance,
       mentoringStyle,
       researchGuidance,
-      prosCons
+      prosCons,
+      rating
     } = body;
 
     // 필수 필드 검증
@@ -112,7 +114,7 @@ export async function POST(
     if (!atmosphereLevel || !workIntensity || !commuteImportance || 
         !weekendWork || !overtimeFrequency ||
         careerCorporate === undefined || careerProfessor === undefined || careerOthers === undefined ||
-        !ideaAcceptance || !mentoringStyle || !researchGuidance) {
+        !ideaAcceptance || !mentoringStyle || !researchGuidance || !rating) {
       return Response.json(
         { error: "필수 항목을 모두 입력해주세요." },
         { status: 400 }
@@ -145,8 +147,8 @@ export async function POST(
         undergraduate_salary, work_intensity, commute_importance,
         weekend_work, overtime_frequency,
         career_corporate, career_professor, career_others, idea_acceptance,
-        mentoring_style, research_guidance, pros_cons
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+        mentoring_style, research_guidance, pros_cons, rating
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
       ON CONFLICT (lab_id, user_email) 
       DO UPDATE SET
         user_name = EXCLUDED.user_name,
@@ -165,6 +167,7 @@ export async function POST(
         mentoring_style = EXCLUDED.mentoring_style,
         research_guidance = EXCLUDED.research_guidance,
         pros_cons = EXCLUDED.pros_cons,
+        rating = EXCLUDED.rating,
         updated_at = NOW()
       RETURNING id, created_at, updated_at
     `;
@@ -187,7 +190,8 @@ export async function POST(
       ideaAcceptance,
       mentoringStyle,
       researchGuidance,
-      prosCons
+      prosCons,
+      rating
     ]);
 
     return Response.json({

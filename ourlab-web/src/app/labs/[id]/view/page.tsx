@@ -264,13 +264,13 @@ export default function LabViewPage() {
               {/* 평균 별점 */}
               <div className="mb-6">
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="text-2xl font-bold">{reviewSummary.avg_rating ? reviewSummary.avg_rating.toFixed(1) : '0.0'}</span>
+                  <span className="text-2xl font-bold">{reviewSummary.avg_rating ? Number(reviewSummary.avg_rating).toFixed(1) : '0.0'}</span>
                   <div className="flex gap-1">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star
                         key={star}
                         className={`w-5 h-5 ${
-                          star <= (reviewSummary.avg_rating || 0)
+                          star <= (Number(reviewSummary.avg_rating) || 0)
                             ? 'fill-yellow-400 text-yellow-400'
                             : 'text-gray-300'
                         }`}
@@ -281,27 +281,25 @@ export default function LabViewPage() {
                 </div>
                 
                 {/* 별점 분포 */}
-                {reviewSummary.rating_stats && (
-                  <div className="space-y-2">
-                    {[5, 4, 3, 2, 1].map((rating) => {
-                      const percentage = reviewSummary.rating_stats[rating.toString()] || 0;
-                      return (
-                        <div key={rating} className="flex items-center gap-2">
-                          <span className="text-sm w-8">★ {rating}</span>
-                          <div className="flex-1 bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-yellow-400 h-2 rounded-full"
-                              style={{ width: `${Math.min(Math.max(percentage * 0.8, 16), 80)}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-sm text-gray-600 w-8">
-                            {percentage}%
-                          </span>
+                <div className="space-y-2">
+                  {[5, 4, 3, 2, 1].map((rating) => {
+                    const percentage = reviewSummary.rating_stats?.[rating.toString()] || 0;
+                    return (
+                      <div key={rating} className="flex items-center gap-2">
+                        <span className="text-sm w-8">★ {rating}</span>
+                        <div className="flex-1 bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-yellow-400 h-2 rounded-full"
+                            style={{ width: `${Math.min(Math.max(percentage * 0.8, 16), 80)}%` }}
+                          ></div>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
+                        <span className="text-sm text-gray-600 w-8">
+                          {percentage}%
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* 카테고리별 평가 */}
