@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Save, Plus } from "lucide-react";
+import { ArrowLeft, Save, Plus, Star, Check, ExternalLink } from "lucide-react";
 
 interface Lab {
   id: number;
@@ -39,6 +39,7 @@ interface ReviewForm {
   mentoringStyle: string;
   researchGuidance: string;
   prosCons: string;
+  rating: number;
 }
 
 const ATMOSPHERE_OPTIONS = ['매우 엄격함', '엄격한 편', '무난함', '프리함', '매우 프리함'];
@@ -63,6 +64,7 @@ export default function LabEvaluatePage() {
   const [user, setUser] = useState<any>(null);
 
   const [submitting, setSubmitting] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
 
   const [form, setForm] = useState<ReviewForm>({
     atmosphereLevel: '',
@@ -79,7 +81,8 @@ export default function LabEvaluatePage() {
     ideaAcceptance: '',
     mentoringStyle: '',
     researchGuidance: '',
-    prosCons: ''
+    prosCons: '',
+    rating: 0
   });
 
   useEffect(() => {
@@ -135,19 +138,20 @@ export default function LabEvaluatePage() {
       <label className="text-sm font-medium text-gray-700">
         {title} {required && <span className="text-red-500">*</span>}
       </label>
-      <div className="space-y-2">
+      <div className="flex flex-wrap gap-2">
         {options.map((option) => (
-          <label key={option} className="flex items-center space-x-2">
-            <input
-              type="radio"
-              name={title}
-              value={option}
-              checked={value === option}
-              onChange={(e) => onChange(e.target.value)}
-              className="text-blue-600"
-            />
-            <span className="text-sm">{option}</span>
-          </label>
+          <button
+            key={option}
+            type="button"
+            onClick={() => onChange(option)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              value === option
+                ? 'bg-gray-700 text-white border border-gray-600'
+                : 'bg-gray-200 text-gray-700 border border-gray-300 hover:bg-gray-300'
+            }`}
+          >
+            {option}
+          </button>
         ))}
       </div>
     </div>
@@ -174,6 +178,40 @@ export default function LabEvaluatePage() {
         className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
         placeholder={`${min}-${max}`}
       />
+    </div>
+  );
+
+  const renderStarRating = (
+    value: number,
+    onChange: (value: number) => void
+  ) => (
+    <div className="space-y-3">
+      <label className="text-sm font-medium text-gray-700">
+        별점 평가 <span className="text-red-500">*</span>
+      </label>
+      <div className="flex items-center gap-2">
+        <div className="flex gap-1">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              type="button"
+              onClick={() => onChange(star)}
+              className="focus:outline-none"
+            >
+              <Star
+                className={`w-6 h-6 ${
+                  star <= value
+                    ? 'fill-yellow-400 text-yellow-400'
+                    : 'text-gray-300'
+                }`}
+              />
+            </button>
+          ))}
+        </div>
+        <span className="text-sm text-gray-600 ml-2">
+          {value}/5
+        </span>
+      </div>
     </div>
   );
 
@@ -211,7 +249,7 @@ export default function LabEvaluatePage() {
     if (!form.atmosphereLevel || !form.workIntensity || !form.commuteImportance ||
         !form.weekendWork || !form.overtimeFrequency ||
         form.careerCorporate === 0 || form.careerProfessor === 0 || form.careerOthers === 0 ||
-        !form.ideaAcceptance || !form.mentoringStyle || !form.researchGuidance) {
+        !form.ideaAcceptance || !form.mentoringStyle || !form.researchGuidance || form.rating === 0) {
       alert("필수 항목을 모두 입력해주세요.");
       return;
     }
@@ -311,7 +349,7 @@ export default function LabEvaluatePage() {
                   {lab.university_name} {lab.department_name}
                 </p>
                 {lab.professor_name && (
-                  <p className="text-gray-600">지도교수: {lab.professor_name}</p>
+                  <p className="text-gray-600">교수님: {lab.professor_name}</p>
                 )}
               </div>
               {lab.homepage_url && (
@@ -320,6 +358,7 @@ export default function LabEvaluatePage() {
                   size="sm"
                   onClick={() => window.open(lab.homepage_url, '_blank')}
                 >
+                  <ExternalLink className="w-4 h-4 mr-2" />
                   홈페이지
                 </Button>
               )}
@@ -330,7 +369,29 @@ export default function LabEvaluatePage() {
         {/* 이 연구실을 나의 연구실로 등록 */}
         <Card className="mb-8">
           <CardHeader className="pb-2">
-            <CardTitle>이 연구실을 나의 연구실로 등록</CardTitle>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsFavorite(!isFavorite)}
+                className="focus:outline-none"
+              >
+                <Star
+                  className={`w-5 h-5 ${
+                    isFavorite
+                      ? 'fill-yellow-400 text-yellow-400'
+                      : 'text-gray-400'
+                  }`}
+                />
+              </button>
+              <div 
+                className="cursor-pointer hover:underline"
+                onClick={() => setIsFavorite(!isFavorite)}
+              >
+                <CardTitle>
+                  이 연구실을 나의 연구실로 등록
+                </CardTitle>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="pt-0 pb-5">
             <div className="flex justify-between items-start">
@@ -344,6 +405,7 @@ export default function LabEvaluatePage() {
                   alert('학교 메일 인증 기능이 준비 중입니다.');
                 }}
               >
+                <Check className="w-4 h-4 mr-1 text-gray-500" />
                 대학교 인증하기
               </Button>
             </div>
@@ -489,9 +551,18 @@ export default function LabEvaluatePage() {
                   </div>
                 </div>
 
-                {/* 6. 연구실의 장점 및 단점 */}
+                {/* 6. 별점 평가 */}
                 <div className="border-b pb-6">
-                  <h3 className="text-lg font-semibold mb-4">6. 연구실의 장점 및 단점</h3>
+                  <h3 className="text-lg font-semibold mb-4">6. 별점 평가</h3>
+                  {renderStarRating(
+                    form.rating,
+                    (value) => setForm(prev => ({ ...prev, rating: value }))
+                  )}
+                </div>
+
+                {/* 7. 연구실의 장점 및 단점 */}
+                <div className="border-b pb-6">
+                  <h3 className="text-lg font-semibold mb-4">7. 연구실의 장점 및 단점</h3>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700">
                       장점 및 단점 (선택사항)

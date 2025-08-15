@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Star, ArrowLeft, ExternalLink, MessageSquare } from "lucide-react";
+import { Star, ArrowLeft, ExternalLink, MessageSquare, Check } from "lucide-react";
 
 interface Lab {
   id: number;
@@ -249,51 +249,152 @@ export default function LabViewPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div>
-                  <span className="text-sm text-gray-600">연구실 분위기</span>
-                  <div className="mt-1">{renderValue(reviewSummary.most_common_atmosphere)}</div>
+              {/* 평균 별점 */}
+              <div className="mb-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-2xl font-bold">3.00</span>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`w-5 h-5 ${
+                          star <= 3
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-gray-300'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-sm text-gray-600">({reviewSummary.review_count}개)</span>
                 </div>
+                
+                {/* 별점 분포 */}
+                <div className="space-y-2">
+                  {[5, 4, 3, 2, 1].map((rating) => (
+                    <div key={rating} className="flex items-center gap-2">
+                      <span className="text-sm w-8">★ {rating}</span>
+                      <div className="flex-1 bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-yellow-400 h-2 rounded-full"
+                          style={{ width: `${rating === 5 ? 28 : rating === 4 ? 17 : rating === 3 ? 11 : rating === 2 ? 17 : 28}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-sm text-gray-600 w-8">
+                        {rating === 5 ? 28 : rating === 4 ? 17 : rating === 3 ? 11 : rating === 2 ? 17 : 28}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-                <div>
-                  <span className="text-sm text-gray-600">박사생 인건비</span>
-                  <div className="mt-1">{renderValue(reviewSummary.most_common_phd_salary)}</div>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600">석사생 인건비</span>
-                  <div className="mt-1">{renderValue(reviewSummary.most_common_master_salary)}</div>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600">주말 근무</span>
-                  <div className="mt-1">{renderValue(reviewSummary.most_common_weekend_work)}</div>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600">업무 강도</span>
-                  <div className="mt-1">{renderValue(reviewSummary.most_common_work_intensity)}</div>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600">출퇴근 시간</span>
-                  <div className="mt-1">{renderValue(reviewSummary.most_common_commute_importance)}</div>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600">야근 빈도</span>
-                  <div className="mt-1">{renderValue(reviewSummary.most_common_overtime_frequency)}</div>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600">선배 진로 (평균)</span>
-                  <div className="mt-1">
-                    대기업 {renderValue(reviewSummary.avg_career_corporate)}명, 
-                    교수 {renderValue(reviewSummary.avg_career_professor)}명, 
-                    기타 {renderValue(reviewSummary.avg_career_others)}명
+              {/* 카테고리별 평가 */}
+              <div className="space-y-4">
+                {/* 연구실 분위기 */}
+                <div className="flex items-start gap-4">
+                  <h4 className="text-sm font-medium text-gray-700 flex-shrink-0">연구실 분위기</h4>
+                  <div className="space-y-2 flex-1">
+                    {['매우 엄격함', '엄격한 편', '무난함', '프리함', '매우 프리함'].map((option) => {
+                      const percentage = option === '프리함' ? 53 : option === '무난함' ? 47 : 0;
+                      const isSelected = option === '프리함';
+                      return (
+                        <div key={option} className="relative">
+                          <div 
+                            className={`px-3 py-2 rounded-lg text-sm font-medium text-white transition-all duration-200 ${
+                              isSelected 
+                                ? 'bg-orange-500 w-20' 
+                                : 'bg-gray-700 w-16'
+                            }`}
+                          >
+                            <span className="block truncate">{option}</span>
+                            <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs">
+                              {percentage}%
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-                <div>
-                  <span className="text-sm text-gray-600">아이디어 수용도</span>
-                  <div className="mt-1">{renderValue(reviewSummary.most_common_idea_acceptance)}</div>
+
+                {/* 업무 강도 */}
+                <div className="flex items-start gap-4">
+                  <h4 className="text-sm font-medium text-gray-700 flex-shrink-0">업무 강도</h4>
+                  <div className="space-y-2 flex-1">
+                    {['강한 편', '무난한 편', '여유로운 편'].map((option) => {
+                      const percentage = option === '무난한 편' ? 71 : option === '강한 편' ? 29 : 0;
+                      const isSelected = option === '무난한 편';
+                      return (
+                        <div key={option} className="relative">
+                          <div 
+                            className={`px-3 py-2 rounded-lg text-sm font-medium text-white transition-all duration-200 ${
+                              isSelected 
+                                ? 'bg-green-500 w-20' 
+                                : 'bg-gray-700 w-16'
+                            }`}
+                          >
+                            <span className="block truncate">{option}</span>
+                            <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs">
+                              {percentage}%
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
+
+                {/* 멘토링 스타일 */}
+                <div className="flex items-start gap-4">
+                  <h4 className="text-sm font-medium text-gray-700 flex-shrink-0">멘토링 스타일</h4>
+                  <div className="space-y-2 flex-1">
+                    {['매우 친절하고 배려심 많음', '친절하신 편', '중립적', '까다로운 편', '비협조적'].map((option) => {
+                      const percentage = option === '중립적' ? 41 : option === '친절하신 편' ? 24 : option === '까다로운 편' ? 35 : 0;
+                      const isSelected = option === '중립적';
+                      return (
+                        <div key={option} className="relative">
+                          <div 
+                            className={`px-3 py-2 rounded-lg text-sm font-medium text-white transition-all duration-200 ${
+                              isSelected 
+                                ? 'bg-blue-500 w-20' 
+                                : 'bg-gray-700 w-16'
+                            }`}
+                          >
+                            <span className="block truncate">{option}</span>
+                            <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs">
+                              {percentage}%
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 주말 근무 */}
                 <div>
-                  <span className="text-sm text-gray-600">멘토링 스타일</span>
-                  <div className="mt-1">{renderValue(reviewSummary.most_common_mentoring_style)}</div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">주말 근무</h4>
+                  <div className="space-y-1">
+                    {['자주 있음', '종종 있음', '거의 없음'].map((option) => (
+                      <div key={option} className="flex items-center justify-between">
+                        <span className="text-sm flex items-center gap-1">
+                          {option}
+                          {option === '거의 없음' && <Check className="w-3 h-3 text-green-500" />}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 야근 빈도 */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">야근 빈도</h4>
+                  <div className="space-y-1">
+                    {['자주 있음', '종종 있음', '거의 없음'].map((option) => (
+                      <div key={option} className="flex items-center justify-between">
+                        <span className="text-sm">{option}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </CardContent>
