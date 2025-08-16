@@ -260,8 +260,10 @@ app.get('/api/auth/status', (req, res) => {
 
 // 게시글 목록 조회
 app.get('/api/posts', async (req, res) => {
+  const { board } = req.query;
+  
   try {
-    const result = await pool.query(`
+    let query = `
       SELECT 
         p.*,
         (COUNT(DISTINCT c.id) + COUNT(DISTINCT r.id)) as comment_count,
@@ -270,9 +272,19 @@ app.get('/api/posts', async (req, res) => {
       LEFT JOIN community_comment c ON p.id = c.post_id
       LEFT JOIN community_reply r ON p.id = r.post_id
       LEFT JOIN community_post_like pl ON p.id = pl.post_id
-      GROUP BY p.id
-      ORDER BY p.created_at DESC
-    `);
+    `;
+
+    // 특정 게시판이 선택된 경우 필터링
+    if (board && board !== '전체 광장') {
+      query += ` WHERE $1 = ANY(p.boards)`;
+    } else if (board === '전체 광장') {
+      // 전체 광장에서는 모든 게시글 표시 (필터링 없음)
+    }
+
+    query += ` GROUP BY p.id ORDER BY p.created_at DESC`;
+
+    const params = board && board !== '전체 광장' ? [board] : [];
+    const result = await pool.query(query, params);
     
     // 필드명을 프론트엔드 형식으로 변환
     const posts = result.rows.map(row => ({
@@ -285,7 +297,9 @@ app.get('/api/posts', async (req, res) => {
       updatedAt: row.updated_at,
       viewCount: row.view_count,
       likeCount: row.like_count,
-      commentCount: parseInt(row.comment_count)
+      commentCount: parseInt(row.comment_count),
+      isColumn: row.is_column,
+      boards: row.boards || []
     }));
     
     res.json({
@@ -299,18 +313,24 @@ app.get('/api/posts', async (req, res) => {
 
 // 게시글 작성
 app.post('/api/posts', isAuthenticated, async (req, res) => {
-  const { title, content } = req.body;
+  const { title, content, isColumn, selectedBoards } = req.body;
+  
+  console.log('게시글 작성 요청:', { title, content, isColumn, selectedBoards });
   
   if (!title || !content) {
     return res.status(400).json({ message: '제목과 내용을 모두 입력해주세요.' });
   }
+
+  if (!selectedBoards || selectedBoards.length === 0) {
+    return res.status(400).json({ message: '최소 1개의 게시판을 선택해주세요.' });
+  }
   
   try {
     const result = await pool.query(`
-      INSERT INTO community_post (title, content, author, author_email)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO community_post (title, content, author, author_email, is_column, boards)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
-    `, [title.trim(), content.trim(), req.user.displayName, req.user.email]);
+    `, [title.trim(), content.trim(), '익명의 글쓴이', req.user.email, isColumn || false, selectedBoards]);
     
     res.json({
       message: '게시글이 작성되었습니다.',
@@ -435,41 +455,51 @@ app.post('/api/posts/:id/comments', isAuthenticated, async (req, res) => {
   }
   
   try {
-    // 게시글이 존재하는지 확인
-    const postResult = await pool.query('SELECT id FROM community_post WHERE id = $1', [postId]);
+    // 게시글이 존재하는지 확인하고 작성자 정보도 가져오기
+    const postResult = await pool.query('SELECT id, author_email FROM community_post WHERE id = $1', [postId]);
     if (postResult.rows.length === 0) {
       return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
     }
     
-    // 사용자별 익명 번호 할당 (게시글별로 독립적)
-    // 먼저 해당 사용자가 이 게시글에 이미 댓글을 달았는지 확인
-    const existingCommentResult = await pool.query(`
-      SELECT author FROM community_comment 
-      WHERE post_id = $1 AND author_email = $2 
-      LIMIT 1
-    `, [postId, req.user.email]);
+    const postAuthorEmail = postResult.rows[0].author_email;
+    const isPostAuthor = req.user.email === postAuthorEmail;
     
-    let anonymousNumber;
-    if (existingCommentResult.rows.length > 0) {
-      // 이미 댓글을 달았으면 기존 번호 사용
-      const existingAuthor = existingCommentResult.rows[0].author;
-      anonymousNumber = parseInt(existingAuthor.replace('익명', ''));
+    let authorName;
+    
+    if (isPostAuthor) {
+      // 게시글 작성자인 경우 '글쓴이'로 표시
+      authorName = '글쓴이';
     } else {
-      // 새로운 사용자면 다음 번호 할당
-      const maxNumberResult = await pool.query(`
-        SELECT COALESCE(MAX(CAST(REPLACE(author, '익명', '') AS INTEGER)), 0) as max_number
-        FROM community_comment 
-        WHERE post_id = $1 AND author LIKE '익명%'
-      `, [postId]);
+      // 다른 사용자인 경우 익명 번호 할당
+      // 먼저 해당 사용자가 이 게시글에 이미 댓글을 달았는지 확인
+      const existingCommentResult = await pool.query(`
+        SELECT author FROM community_comment 
+        WHERE post_id = $1 AND author_email = $2 
+        LIMIT 1
+      `, [postId, req.user.email]);
       
-      anonymousNumber = parseInt(maxNumberResult.rows[0].max_number) + 1;
+      if (existingCommentResult.rows.length > 0) {
+        // 이미 댓글을 달았으면 기존 번호 사용
+        const existingAuthor = existingCommentResult.rows[0].author;
+        authorName = existingAuthor;
+      } else {
+        // 새로운 사용자면 다음 번호 할당
+        const maxNumberResult = await pool.query(`
+          SELECT COALESCE(MAX(CAST(REPLACE(author, '익명', '') AS INTEGER)), 0) as max_number
+          FROM community_comment 
+          WHERE post_id = $1 AND author LIKE '익명%'
+        `, [postId]);
+        
+        const anonymousNumber = parseInt(maxNumberResult.rows[0].max_number) + 1;
+        authorName = `익명${anonymousNumber}`;
+      }
     }
     
     const result = await pool.query(`
       INSERT INTO community_comment (post_id, content, author, author_email)
       VALUES ($1, $2, $3, $4)
       RETURNING *
-    `, [postId, content.trim(), `익명${anonymousNumber}`, req.user.email]);
+    `, [postId, content.trim(), authorName, req.user.email]);
     
     // 필드명을 프론트엔드 형식으로 변환
     const comment = {
@@ -503,8 +533,8 @@ app.post('/api/posts/:postId/comments/:commentId/replies', isAuthenticated, asyn
   }
   
   try {
-    // 게시글이 존재하는지 확인
-    const postResult = await pool.query('SELECT id FROM community_post WHERE id = $1', [postId]);
+    // 게시글이 존재하는지 확인하고 작성자 정보도 가져오기
+    const postResult = await pool.query('SELECT id, author_email FROM community_post WHERE id = $1', [postId]);
     if (postResult.rows.length === 0) {
       return res.status(404).json({ message: '게시글을 찾을 수 없습니다.' });
     }
@@ -515,42 +545,52 @@ app.post('/api/posts/:postId/comments/:commentId/replies', isAuthenticated, asyn
       return res.status(404).json({ message: '댓글을 찾을 수 없습니다.' });
     }
     
-    // 사용자별 익명 번호 할당 (게시글별로 독립적)
-    // 먼저 해당 사용자가 이 게시글에 이미 댓글이나 대댓글을 달았는지 확인
-    const existingResult = await pool.query(`
-      SELECT author FROM (
-        SELECT author, author_email FROM community_comment WHERE post_id = $1
-        UNION ALL
-        SELECT author, author_email FROM community_reply WHERE post_id = $1
-      ) combined
-      WHERE author_email = $2 
-      LIMIT 1
-    `, [postId, req.user.email]);
+    const postAuthorEmail = postResult.rows[0].author_email;
+    const isPostAuthor = req.user.email === postAuthorEmail;
     
-    let anonymousNumber;
-    if (existingResult.rows.length > 0) {
-      // 이미 댓글이나 대댓글을 달았으면 기존 번호 사용
-      const existingAuthor = existingResult.rows[0].author;
-      anonymousNumber = parseInt(existingAuthor.replace('익명', ''));
+    let authorName;
+    
+    if (isPostAuthor) {
+      // 게시글 작성자인 경우 '글쓴이'로 표시
+      authorName = '글쓴이';
     } else {
-      // 새로운 사용자면 다음 번호 할당
-      const maxNumberResult = await pool.query(`
-        SELECT COALESCE(MAX(CAST(REPLACE(author, '익명', '') AS INTEGER)), 0) as max_number
-        FROM (
-          SELECT author FROM community_comment WHERE post_id = $1 AND author LIKE '익명%'
+      // 다른 사용자인 경우 익명 번호 할당
+      // 먼저 해당 사용자가 이 게시글에 이미 댓글이나 대댓글을 달았는지 확인
+      const existingResult = await pool.query(`
+        SELECT author FROM (
+          SELECT author, author_email FROM community_comment WHERE post_id = $1
           UNION ALL
-          SELECT author FROM community_reply WHERE post_id = $1 AND author LIKE '익명%'
+          SELECT author, author_email FROM community_reply WHERE post_id = $1
         ) combined
-      `, [postId]);
+        WHERE author_email = $2 
+        LIMIT 1
+      `, [postId, req.user.email]);
       
-      anonymousNumber = parseInt(maxNumberResult.rows[0].max_number) + 1;
+      if (existingResult.rows.length > 0) {
+        // 이미 댓글이나 대댓글을 달았으면 기존 번호 사용
+        const existingAuthor = existingResult.rows[0].author;
+        authorName = existingAuthor;
+      } else {
+        // 새로운 사용자면 다음 번호 할당
+        const maxNumberResult = await pool.query(`
+          SELECT COALESCE(MAX(CAST(REPLACE(author, '익명', '') AS INTEGER)), 0) as max_number
+          FROM (
+            SELECT author FROM community_comment WHERE post_id = $1 AND author LIKE '익명%'
+            UNION ALL
+            SELECT author FROM community_reply WHERE post_id = $1 AND author LIKE '익명%'
+          ) combined
+        `, [postId]);
+        
+        const anonymousNumber = parseInt(maxNumberResult.rows[0].max_number) + 1;
+        authorName = `익명${anonymousNumber}`;
+      }
     }
     
     const result = await pool.query(`
       INSERT INTO community_reply (post_id, comment_id, content, author, author_email)
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *
-    `, [postId, commentId, content.trim(), `익명${anonymousNumber}`, req.user.email]);
+    `, [postId, commentId, content.trim(), authorName, req.user.email]);
     
     // 필드명을 프론트엔드 형식으로 변환
     const reply = {

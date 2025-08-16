@@ -238,9 +238,7 @@ export default function PostDetailPage() {
     return date.toLocaleDateString('ko-KR', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      day: 'numeric'
     })
   }
 
@@ -276,7 +274,7 @@ export default function PostDetailPage() {
         <CardHeader>
           <CardTitle className="text-2xl">{post.title}</CardTitle>
           <div className="flex justify-between items-center text-sm text-gray-600">
-            <span>작성자: {post.author}</span>
+            <span>작성자: 익명의 글쓴이</span>
             <div className="flex items-center gap-4">
               <span>조회수 {post.viewCount}</span>
               <span>{formatDate(post.createdAt)}</span>

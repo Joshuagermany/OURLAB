@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Home, BookOpen } from "lucide-react"
 
 interface Post {
   id: string
@@ -14,12 +15,21 @@ interface Post {
   createdAt: string
   commentCount: number
   viewCount: number
+  isColumn: boolean
+  boards: string[]
 }
 
 export default function CommunityPage() {
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
+  const [selectedBoard, setSelectedBoard] = useState<string>('자유 게시판')
+
+  // 게시판 목록
+  const boards = {
+    topRow: ['자유 게시판', '학부 인턴 게시판', '대학원 입시', '고민 게시판'],
+    bottomRow: ['반도체 광장', 'AI・컴공 광장', '기계 광장', '바이오 광장', '화학・재료 광장']
+  }
 
 
   useEffect(() => {
@@ -36,9 +46,11 @@ export default function CommunityPage() {
       console.error('인증 상태 확인 실패:', err)
       setLoading(false)
     })
+  }, [])
 
+  useEffect(() => {
     // 게시글 목록 가져오기
-    fetch('http://localhost:3001/api/posts', { credentials: 'include' })
+    fetch(`http://localhost:3001/api/posts?board=${encodeURIComponent(selectedBoard)}`, { credentials: 'include' })
     .then(res => res.json())
     .then(data => {
       setPosts(data.posts || [])
@@ -46,16 +58,14 @@ export default function CommunityPage() {
     .catch(err => {
       console.error('게시글 목록 가져오기 실패:', err)
     })
-  }, [])
+  }, [selectedBoard])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleDateString('ko-KR', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      day: 'numeric'
     })
   }
 
@@ -82,6 +92,53 @@ export default function CommunityPage() {
         )}
       </div>
 
+      {/* 게시판 선택 UI */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Home className="w-5 h-5" />
+            커뮤니티 홈
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {/* 상단 줄 */}
+            <div className="grid grid-cols-4 gap-3">
+              {boards.topRow.map((board) => (
+                <button
+                  key={board}
+                  onClick={() => setSelectedBoard(board)}
+                  className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                    selectedBoard === board
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {board}
+                </button>
+              ))}
+            </div>
+            
+            {/* 하단 줄 */}
+            <div className="grid grid-cols-5 gap-3">
+              {boards.bottomRow.map((board) => (
+                <button
+                  key={board}
+                  onClick={() => setSelectedBoard(board)}
+                  className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                    selectedBoard === board
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {board}
+                </button>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {!user && (
         <Card className="mb-6">
           <CardContent className="pt-6">
@@ -91,6 +148,13 @@ export default function CommunityPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* 선택된 게시판 표시 */}
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">
+          {selectedBoard}
+        </h2>
+      </div>
 
       <div className="space-y-4">
         {posts.length === 0 ? (
@@ -104,7 +168,10 @@ export default function CommunityPage() {
             <Card key={post.id} className="hover:shadow-md transition-shadow w-full">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg">
-                  <Link href={`/community/post/${post.id}`} className="hover:text-blue-600">
+                  <Link href={`/community/post/${post.id}`} className="hover:text-blue-600 flex items-center gap-2">
+                    {post.isColumn && (
+                      <BookOpen className="w-4 h-4 text-blue-600" />
+                    )}
                     {post.title}
                   </Link>
                 </CardTitle>

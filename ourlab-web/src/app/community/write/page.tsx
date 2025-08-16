@@ -11,7 +11,30 @@ export default function WritePostPage() {
   const [content, setContent] = useState("")
   const [loading, setLoading] = useState(false)
   const [user, setUser] = useState<any>(null)
+  const [selectedBoards, setSelectedBoards] = useState<string[]>([])
+  const [isColumn, setIsColumn] = useState(false)
   const router = useRouter()
+
+  // 게시판 목록
+  const boards = {
+    topRow: ['자유 게시판', '학부 인턴 게시판', '대학원 입시', '고민 게시판'],
+    bottomRow: ['반도체 광장', 'AI・컴공 광장', '기계 광장', '바이오 광장', '화학・재료 광장']
+  }
+
+  // 게시판 선택/해제 함수
+  const toggleBoard = (board: string) => {
+    setSelectedBoards(prev => {
+      if (prev.includes(board)) {
+        return prev.filter(b => b !== board)
+      } else {
+        if (prev.length >= 3) {
+          alert('최대 3개까지만 선택할 수 있습니다.')
+          return prev
+        }
+        return [...prev, board]
+      }
+    })
+  }
 
   useEffect(() => {
     // 인증 상태 확인
@@ -39,6 +62,11 @@ export default function WritePostPage() {
       return
     }
 
+    if (selectedBoards.length === 0) {
+      alert('최소 1개의 게시판을 선택해주세요.')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -50,7 +78,9 @@ export default function WritePostPage() {
         credentials: 'include',
         body: JSON.stringify({
           title: title.trim(),
-          content: content.trim()
+          content: content.trim(),
+          isColumn: isColumn,
+          selectedBoards: selectedBoards
         })
       })
 
@@ -88,6 +118,56 @@ export default function WritePostPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* 게시판 선택 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                게시판 선택 <span className="text-red-500">*</span>
+                <span className="text-sm text-gray-500 ml-2">(최대 3개까지 선택 가능)</span>
+              </label>
+              <div className="space-y-3">
+                {/* 상단 줄 */}
+                <div className="grid grid-cols-4 gap-2">
+                  {boards.topRow.map((board) => (
+                    <button
+                      key={board}
+                      type="button"
+                      onClick={() => toggleBoard(board)}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        selectedBoards.includes(board)
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {board}
+                    </button>
+                  ))}
+                </div>
+                
+                {/* 하단 줄 */}
+                <div className="grid grid-cols-5 gap-2">
+                  {boards.bottomRow.map((board) => (
+                    <button
+                      key={board}
+                      type="button"
+                      onClick={() => toggleBoard(board)}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        selectedBoards.includes(board)
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {board}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {selectedBoards.length > 0 && (
+                <p className="text-sm text-gray-600 mt-2">
+                  선택된 게시판: {selectedBoards.join(', ')}
+                </p>
+              )}
+            </div>
+
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
                 제목
@@ -117,6 +197,20 @@ export default function WritePostPage() {
                 placeholder="내용을 입력하세요"
                 required
               />
+            </div>
+
+            {/* 칼럼 등록 체크박스 */}
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="isColumn"
+                checked={isColumn}
+                onChange={(e) => setIsColumn(e.target.checked)}
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+              />
+              <label htmlFor="isColumn" className="text-sm text-gray-700">
+                칼럼 등록
+              </label>
             </div>
 
             <div className="flex justify-end space-x-4">
