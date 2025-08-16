@@ -264,10 +264,11 @@ app.get('/api/posts', async (req, res) => {
     const result = await pool.query(`
       SELECT 
         p.*,
-        COUNT(DISTINCT c.id) as comment_count,
+        (COUNT(DISTINCT c.id) + COUNT(DISTINCT r.id)) as comment_count,
         COUNT(DISTINCT pl.id) as like_count
       FROM community_post p
       LEFT JOIN community_comment c ON p.id = c.post_id
+      LEFT JOIN community_reply r ON p.id = r.post_id
       LEFT JOIN community_post_like pl ON p.id = pl.post_id
       GROUP BY p.id
       ORDER BY p.created_at DESC

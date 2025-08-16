@@ -147,7 +147,7 @@ export default function LabViewPage() {
           <Star
             key={star}
             className={`w-6 h-6 ${
-              star <= avgRating
+              star <= Math.ceil(avgRating)
                 ? 'fill-yellow-400 text-yellow-400'
                 : 'text-gray-300'
             }`}
