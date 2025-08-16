@@ -258,6 +258,47 @@ app.get('/api/auth/status', (req, res) => {
 // 익명 번호는 이제 데이터베이스에서 관리됩니다
 
 
+// 베스트 게시글 조회 (조회수 순)
+app.get('/api/posts/best', async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        p.*,
+        (COUNT(DISTINCT c.id) + COUNT(DISTINCT r.id)) as comment_count,
+        COUNT(DISTINCT pl.id) as like_count
+      FROM community_post p
+      LEFT JOIN community_comment c ON p.id = c.post_id
+      LEFT JOIN community_reply r ON p.id = r.post_id
+      LEFT JOIN community_post_like pl ON p.id = pl.post_id
+      GROUP BY p.id 
+      ORDER BY p.view_count DESC, p.created_at DESC
+    `;
+
+    const result = await pool.query(query);
+    
+    // 필드명을 프론트엔드 형식으로 변환
+    const posts = result.rows.map(row => ({
+      id: row.id.toString(),
+      title: row.title,
+      content: row.content,
+      author: row.author,
+      authorEmail: row.author_email,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      viewCount: row.view_count,
+      likeCount: row.like_count,
+      commentCount: parseInt(row.comment_count),
+      isColumn: row.is_column,
+      boards: row.boards || []
+    }));
+    
+    res.json({ posts });
+  } catch (error) {
+    console.error('베스트 게시글 조회 오류:', error);
+    res.status(500).json({ message: '베스트 게시글 조회 중 오류가 발생했습니다.' });
+  }
+});
+
 // 게시글 목록 조회
 app.get('/api/posts', async (req, res) => {
   const { board } = req.query;

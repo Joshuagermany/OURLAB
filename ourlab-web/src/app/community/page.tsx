@@ -96,8 +96,10 @@ export default function CommunityPage() {
       <Card className="mb-8">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Home className="w-5 h-5" />
-            커뮤니티 홈
+            <Link href="/community/best" className="flex items-center gap-2 hover:text-blue-600 transition-colors">
+              <Home className="w-5 h-5" />
+              커뮤니티 홈
+            </Link>
           </CardTitle>
         </CardHeader>
         <CardContent>
