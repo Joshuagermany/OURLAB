@@ -308,6 +308,14 @@ export default function PostDetailPage() {
         </CardContent>
       </Card>
 
+      {/* 광고 배너 */}
+      <div className="mb-8 w-full">
+        <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-6 text-center text-white">
+          <div className="text-lg font-semibold mb-2">광고 공간</div>
+          <div className="text-sm opacity-90">서비스 런칭 후 광고가 표시됩니다</div>
+        </div>
+      </div>
+
       {user ? (
         <Card className="mb-8 w-full">
           <CardHeader>

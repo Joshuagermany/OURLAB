@@ -149,6 +149,14 @@ export default function CommunityPage() {
         </Card>
       )}
 
+      {/* 광고 배너 */}
+      <div className="mb-8 w-full">
+        <div className="bg-gradient-to-r from-green-500 to-blue-600 rounded-lg p-6 text-center text-white">
+          <div className="text-lg font-semibold mb-2">광고 공간</div>
+          <div className="text-sm opacity-90">서비스 런칭 후 광고가 표시됩니다</div>
+        </div>
+      </div>
+
       {/* 선택된 게시판 표시 */}
       <div className="mb-6">
         <h2 className="text-xl font-semibold text-gray-800 mb-4">
