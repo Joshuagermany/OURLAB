@@ -13,7 +13,7 @@ export default function Home() {
 
         <section className="mt-4">
           <div className="mx-auto max-w-4xl text-left">
-            <h2 className="text-xl font-semibold mb-2">연구실 평가 확인하기</h2>
+            <h2 className="text-xl font-semibold mb-2">진학하고 싶은 연구실 평가 확인하기</h2>
             <SearchLabForm variant="browse" />
           </div>
         </section>
