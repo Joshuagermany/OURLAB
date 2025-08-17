@@ -62,6 +62,7 @@ export default function LabEvaluatePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -120,6 +121,11 @@ export default function LabEvaluatePage() {
     } catch (error) {
       console.error("사용자 정보 조회 오류:", error);
     }
+  };
+
+  const handleAuthentication = () => {
+    setIsAuthenticated(true);
+    alert('학교 메일 인증이 완료되었습니다. 이제 평가를 작성할 수 있습니다.');
   };
 
   const renderValue = (value: string | number | null) => {
@@ -401,10 +407,7 @@ export default function LabEvaluatePage() {
                 variant="outline"
                 size="sm"
                 className="-mt-3 hover:bg-gray-100"
-                onClick={() => {
-                  // 인증 기능 구현 예정
-                  alert('학교 메일 인증 기능이 준비 중입니다.');
-                }}
+                onClick={handleAuthentication}
               >
                 <Check className="w-4 h-4 mr-1 text-gray-500" />
                 대학교 인증하기
@@ -415,197 +418,222 @@ export default function LabEvaluatePage() {
 
         {/* 평가 폼 */}
         {user ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>연구실 평가하기</CardTitle>
-              <p className="text-sm text-gray-600">
-                이 연구실에 대한 경험이나 의견을 공유해주세요.<br />
-                다른 학생들이 더 나은 선택을 할 수 있도록 도와주세요.
-              </p>
-              <p className="text-sm text-gray-500 mt-2">
-                *평가자와 평가인원에 대한 정보는 모두 비공개 처리됩니다.
-              </p>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-8">
-                {/* 1. 연구실의 분위기 */}
-                <div className="border-b pb-6">
-                  <h3 className="text-lg font-semibold mb-4">1. 연구실의 분위기</h3>
-                  {renderRadioGroup(
-                    "연구실 분위기",
-                    ATMOSPHERE_OPTIONS,
-                    form.atmosphereLevel,
-                    (value) => setForm(prev => ({ ...prev, atmosphereLevel: value }))
+          <div className="relative">
+            <Card className={`relative ${!isAuthenticated ? 'blur-sm pointer-events-none' : ''}`}>
+              <CardHeader>
+                <CardTitle>연구실 평가하기</CardTitle>
+                <p className="text-sm text-gray-600">
+                  이 연구실에 대한 경험이나 의견을 공유해주세요.<br />
+                  다른 학생들이 더 나은 선택을 할 수 있도록 도와주세요.
+                </p>
+                <p className="text-sm text-gray-500 mt-2">
+                  *평가자와 평가인원에 대한 정보는 모두 비공개 처리됩니다.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-8">
+                  {/* 1. 연구실의 분위기 */}
+                  <div className="border-b pb-6">
+                    <h3 className="text-lg font-semibold mb-4">1. 연구실의 분위기</h3>
+                    {renderRadioGroup(
+                      "연구실 분위기",
+                      ATMOSPHERE_OPTIONS,
+                      form.atmosphereLevel,
+                      (value) => setForm(prev => ({ ...prev, atmosphereLevel: value }))
+                    )}
+                  </div>
+
+                  {/* 2. 인건비 지급 */}
+                  <div className="border-b pb-6">
+                    <h3 className="text-lg font-semibold mb-4">2. 인건비 지급 (선택사항)</h3>
+                    <div className="space-y-4">
+                      {renderRadioGroup(
+                        "박사생",
+                        SALARY_OPTIONS,
+                        form.phdSalary,
+                        (value) => setForm(prev => ({ ...prev, phdSalary: value })),
+                        false
+                      )}
+                      {renderRadioGroup(
+                        "석사생",
+                        SALARY_OPTIONS,
+                        form.masterSalary,
+                        (value) => setForm(prev => ({ ...prev, masterSalary: value })),
+                        false
+                      )}
+                      {renderRadioGroup(
+                        "학부생",
+                        UNDERGRADUATE_SALARY_OPTIONS,
+                        form.undergraduateSalary,
+                        (value) => setForm(prev => ({ ...prev, undergraduateSalary: value })),
+                        false
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 3. 업무 강도 / 워라밸 */}
+                  <div className="border-b pb-6">
+                    <h3 className="text-lg font-semibold mb-4">3. 업무 강도 / 워라밸</h3>
+                    <div className="space-y-4">
+
+                      {renderRadioGroup(
+                        "업무 강도",
+                        WORK_INTENSITY_OPTIONS,
+                        form.workIntensity,
+                        (value) => setForm(prev => ({ ...prev, workIntensity: value }))
+                      )}
+                      {renderRadioGroup(
+                        "출퇴근 시간",
+                        COMMUTE_IMPORTANCE_OPTIONS,
+                        form.commuteImportance,
+                        (value) => setForm(prev => ({ ...prev, commuteImportance: value }))
+                      )}
+                      {renderRadioGroup(
+                        "주말/공휴일 근무 여부",
+                        FREQUENCY_OPTIONS,
+                        form.weekendWork,
+                        (value) => setForm(prev => ({ ...prev, weekendWork: value }))
+                      )}
+                      {renderRadioGroup(
+                        "야근 빈도",
+                        FREQUENCY_OPTIONS,
+                        form.overtimeFrequency,
+                        (value) => setForm(prev => ({ ...prev, overtimeFrequency: value }))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 4. 선배들의 진로 */}
+                  <div className="border-b pb-6">
+                    <h3 className="text-lg font-semibold mb-4">4. 선배들의 진로 (최근 10명 졸업생 기준)</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {renderCareerInput(
+                        "대기업",
+                        form.careerCorporate,
+                        (value) => setForm(prev => ({ ...prev, careerCorporate: value })),
+                        remainingCareer + form.careerCorporate
+                      )}
+                      {renderCareerInput(
+                        "교수",
+                        form.careerProfessor,
+                        (value) => setForm(prev => ({ ...prev, careerProfessor: value })),
+                        remainingCareer + form.careerProfessor
+                      )}
+                      {renderCareerInput(
+                        "그 외",
+                        form.careerOthers,
+                        (value) => setForm(prev => ({ ...prev, careerOthers: value })),
+                        remainingCareer + form.careerOthers
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-500 mt-2">
+                      총합: {form.careerCorporate + form.careerProfessor + form.careerOthers}/10명
+                    </p>
+                  </div>
+
+                  {/* 5. 지도 교수님 평가 */}
+                  <div className="border-b pb-6">
+                    <h3 className="text-lg font-semibold mb-4">5. 지도 교수님 평가</h3>
+                    <div className="space-y-4">
+                      {renderRadioGroup(
+                        "연구 아이디어 수용도",
+                        IDEA_ACCEPTANCE_OPTIONS,
+                        form.ideaAcceptance,
+                        (value) => setForm(prev => ({ ...prev, ideaAcceptance: value }))
+                      )}
+                      {renderRadioGroup(
+                        "멘토링 및 인품",
+                        MENTORING_STYLE_OPTIONS,
+                        form.mentoringStyle,
+                        (value) => setForm(prev => ({ ...prev, mentoringStyle: value }))
+                      )}
+                      {renderRadioGroup(
+                        "연구 지도 스타일",
+                        RESEARCH_GUIDANCE_OPTIONS,
+                        form.researchGuidance,
+                        (value) => setForm(prev => ({ ...prev, researchGuidance: value }))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 6. 별점 평가 */}
+                  <div className="border-b pb-6">
+                    <h3 className="text-lg font-semibold mb-4">6. 별점 평가</h3>
+                    {renderStarRating(
+                      form.rating,
+                      (value) => setForm(prev => ({ ...prev, rating: value }))
+                    )}
+                  </div>
+
+                  {/* 7. 연구실의 장점 및 단점 */}
+                  <div className="border-b pb-6">
+                    <h3 className="text-lg font-semibold mb-4">7. 연구실의 장점 및 단점</h3>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-700">
+                        장점 및 단점 (선택사항)
+                      </label>
+                      <textarea
+                        value={form.prosCons}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setForm(prev => ({ ...prev, prosCons: e.target.value }))}
+                        placeholder="연구실의 장점과 단점을 자유롭게 작성해주세요."
+                        rows={4}
+                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm resize-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 에러 메시지 */}
+                  {error && (
+                    <div className="text-red-600 text-sm">{error}</div>
                   )}
-                </div>
 
-                {/* 2. 인건비 지급 */}
-                <div className="border-b pb-6">
-                  <h3 className="text-lg font-semibold mb-4">2. 인건비 지급 (선택사항)</h3>
-                  <div className="space-y-4">
-                    {renderRadioGroup(
-                      "박사생",
-                      SALARY_OPTIONS,
-                      form.phdSalary,
-                      (value) => setForm(prev => ({ ...prev, phdSalary: value })),
-                      false
-                    )}
-                    {renderRadioGroup(
-                      "석사생",
-                      SALARY_OPTIONS,
-                      form.masterSalary,
-                      (value) => setForm(prev => ({ ...prev, masterSalary: value })),
-                      false
-                    )}
-                    {renderRadioGroup(
-                      "학부생",
-                      UNDERGRADUATE_SALARY_OPTIONS,
-                      form.undergraduateSalary,
-                      (value) => setForm(prev => ({ ...prev, undergraduateSalary: value })),
-                      false
-                    )}
+                  {/* 제출 버튼 */}
+                  <div className="flex gap-3">
+                    <Button
+                      type="submit"
+                      disabled={submitting}
+                      className="flex-1"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      {submitting ? "저장 중..." : "평가 저장"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => router.back()}
+                      disabled={submitting}
+                      className="hover:bg-gray-100"
+                    >
+                      취소
+                    </Button>
                   </div>
-                </div>
-
-                {/* 3. 업무 강도 / 워라밸 */}
-                <div className="border-b pb-6">
-                  <h3 className="text-lg font-semibold mb-4">3. 업무 강도 / 워라밸</h3>
-                  <div className="space-y-4">
-
-                    {renderRadioGroup(
-                      "업무 강도",
-                      WORK_INTENSITY_OPTIONS,
-                      form.workIntensity,
-                      (value) => setForm(prev => ({ ...prev, workIntensity: value }))
-                    )}
-                    {renderRadioGroup(
-                      "출퇴근 시간",
-                      COMMUTE_IMPORTANCE_OPTIONS,
-                      form.commuteImportance,
-                      (value) => setForm(prev => ({ ...prev, commuteImportance: value }))
-                    )}
-                    {renderRadioGroup(
-                      "주말/공휴일 근무 여부",
-                      FREQUENCY_OPTIONS,
-                      form.weekendWork,
-                      (value) => setForm(prev => ({ ...prev, weekendWork: value }))
-                    )}
-                    {renderRadioGroup(
-                      "야근 빈도",
-                      FREQUENCY_OPTIONS,
-                      form.overtimeFrequency,
-                      (value) => setForm(prev => ({ ...prev, overtimeFrequency: value }))
-                    )}
+                </form>
+              </CardContent>
+            </Card>
+            
+            {/* 블러 처리 시 오버레이 메시지 */}
+            {!isAuthenticated && (
+              <div className="absolute inset-0 bg-white/80 flex items-start justify-center z-50 pt-50">
+                <div className="text-center p-8">
+                  <div className="text-2xl font-bold text-gray-700 mb-4">
+                    🔒 평가 작성이 잠겨있습니다
                   </div>
-                </div>
-
-                {/* 4. 선배들의 진로 */}
-                <div className="border-b pb-6">
-                  <h3 className="text-lg font-semibold mb-4">4. 선배들의 진로 (최근 10명 졸업생 기준)</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {renderCareerInput(
-                      "대기업",
-                      form.careerCorporate,
-                      (value) => setForm(prev => ({ ...prev, careerCorporate: value })),
-                      remainingCareer + form.careerCorporate
-                    )}
-                    {renderCareerInput(
-                      "교수",
-                      form.careerProfessor,
-                      (value) => setForm(prev => ({ ...prev, careerProfessor: value })),
-                      remainingCareer + form.careerProfessor
-                    )}
-                    {renderCareerInput(
-                      "그 외",
-                      form.careerOthers,
-                      (value) => setForm(prev => ({ ...prev, careerOthers: value })),
-                      remainingCareer + form.careerOthers
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-500 mt-2">
-                    총합: {form.careerCorporate + form.careerProfessor + form.careerOthers}/10명
+                  <p className="text-gray-600 mb-6">
+                    위의 "대학교 인증하기" 버튼을 클릭하여<br />
+                    학교 메일 인증을 완료한 후 평가를 작성할 수 있습니다.
                   </p>
-                </div>
-
-                {/* 5. 지도 교수님 평가 */}
-                <div className="border-b pb-6">
-                  <h3 className="text-lg font-semibold mb-4">5. 지도 교수님 평가</h3>
-                  <div className="space-y-4">
-                    {renderRadioGroup(
-                      "연구 아이디어 수용도",
-                      IDEA_ACCEPTANCE_OPTIONS,
-                      form.ideaAcceptance,
-                      (value) => setForm(prev => ({ ...prev, ideaAcceptance: value }))
-                    )}
-                    {renderRadioGroup(
-                      "멘토링 및 인품",
-                      MENTORING_STYLE_OPTIONS,
-                      form.mentoringStyle,
-                      (value) => setForm(prev => ({ ...prev, mentoringStyle: value }))
-                    )}
-                    {renderRadioGroup(
-                      "연구 지도 스타일",
-                      RESEARCH_GUIDANCE_OPTIONS,
-                      form.researchGuidance,
-                      (value) => setForm(prev => ({ ...prev, researchGuidance: value }))
-                    )}
-                  </div>
-                </div>
-
-                {/* 6. 별점 평가 */}
-                <div className="border-b pb-6">
-                  <h3 className="text-lg font-semibold mb-4">6. 별점 평가</h3>
-                  {renderStarRating(
-                    form.rating,
-                    (value) => setForm(prev => ({ ...prev, rating: value }))
-                  )}
-                </div>
-
-                {/* 7. 연구실의 장점 및 단점 */}
-                <div className="border-b pb-6">
-                  <h3 className="text-lg font-semibold mb-4">7. 연구실의 장점 및 단점</h3>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">
-                      장점 및 단점 (선택사항)
-                    </label>
-                    <textarea
-                      value={form.prosCons}
-                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setForm(prev => ({ ...prev, prosCons: e.target.value }))}
-                      placeholder="연구실의 장점과 단점을 자유롭게 작성해주세요."
-                      rows={4}
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm resize-none"
-                    />
-                  </div>
-                </div>
-
-                {/* 에러 메시지 */}
-                {error && (
-                  <div className="text-red-600 text-sm">{error}</div>
-                )}
-
-                {/* 제출 버튼 */}
-                <div className="flex gap-3">
                   <Button
-                    type="submit"
-                    disabled={submitting}
-                    className="flex-1"
+                    onClick={handleAuthentication}
+                    size="lg"
+                    className="px-8 py-3"
                   >
-                    <Save className="w-4 h-4 mr-2" />
-                    {submitting ? "저장 중..." : "평가 저장"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => router.back()}
-                    disabled={submitting}
-                    className="hover:bg-gray-100"
-                  >
-                    취소
+                    <Check className="w-4 h-4 mr-2" />
+                    대학교 인증하기
                   </Button>
                 </div>
-              </form>
-            </CardContent>
-          </Card>
+              </div>
+            )}
+          </div>
         ) : (
           /* 로그인 필요 메시지 */
           <Card>
