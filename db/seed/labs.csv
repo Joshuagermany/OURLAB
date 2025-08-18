@@ -234,7 +234,6 @@ university_name_ko,department_name_ko,lab_name_ko,professor_name,homepage_url
 서울대학교,전기・정보공학부,시스템 보안 연구실,이병영,https://ece.snu.ac.kr/research-faculty/research/lab?md=view&labidx=80
 서울대학교,전기・정보공학부,차세대 박막소자 및 회로 연구실,이수연,https://ece.snu.ac.kr/research-faculty/research/lab?md=view&labidx=84
 서울대학교,전기・정보공학부,지능형 디스플레이&센서 연구실,이재상,https://ece.snu.ac.kr/research-faculty/research/lab?md=view&labidx=90
-서울대학교,전기・정보공학부,인지머신러닝 연구실,이정우,https://ece.snu.ac.kr/research-faculty/research/lab?md=view&labidx=92
 서울대학교,전기・정보공학부,바이오메디컬영상과학 연구실,이종호 (B),https://ece.snu.ac.kr/research-faculty/research/lab?md=view&labidx=94
 서울대학교,전기・정보공학부,반도체 재료 및 소자연구실,이종호 (S),https://ece.snu.ac.kr/research-faculty/research/lab?md=view&labidx=40
 서울대학교,전기・정보공학부,가속화지능형시스템연구실,이진호,https://ece.snu.ac.kr/research-faculty/research/lab?md=view&labidx=98
@@ -262,7 +261,6 @@ university_name_ko,department_name_ko,lab_name_ko,professor_name,homepage_url
 서울대학교,수리과학부,Machine Learning and Scientific Computing (MLSC) LAB,홍영준,https://www.youngjoonhong.com/
 서울대학교,컴퓨터공학부,데이터 마이닝 연구실,강유,https://cse.snu.ac.kr/research/labs/1
 서울대학교,컴퓨터공학부,데이터베이스 시스템 연구실,문봉기,https://cse.snu.ac.kr/research/labs/2
-서울대학교,컴퓨터공학부,머신러닝 연구실,송현오,https://cse.snu.ac.kr/research/labs/3
 서울대학교,컴퓨터공학부,바이오지능 연구실,장병탁,https://cse.snu.ac.kr/research/labs/4
 서울대학교,컴퓨터공학부,분산시스템 연구실,엄현상,https://cse.snu.ac.kr/research/labs/5
 서울대학교,컴퓨터공학부,비주얼 컴퓨팅 연구실,주한별,https://cse.snu.ac.kr/research/labs/6
@@ -299,7 +297,6 @@ university_name_ko,department_name_ko,lab_name_ko,professor_name,homepage_url
 서울대학교,통계학과,지능형자료분석 연구실,김용, https://idea.snu.ac.kr
 서울대학교,통계학과, 위상 기반 통계 및 인공지능 연구실,김지수, https://jkim82133.github.io
 서울대학교,통계학과, 비모델 통계방법론 연구실,문하은, https://sites.google.com/view/haeunmoon
-서울대학교,통계학과, 데이터사이언스&머신러닝 연구실,박건웅, https://sites.google.com/view/gwpark
 서울대학교,통계학과, 비모수추론 연구실,박병욱, https://sites.google.com/view/theostat
 서울대학교,통계학과, 생물정보통계 연구실,박태성, http://bibs.snu.ac.kr
 서울대학교,통계학과, 예측모형 연구실,신예은, https://sites.google.com/view/yeieunshin
@@ -515,7 +512,6 @@ university_name_ko,department_name_ko,lab_name_ko,professor_name,homepage_url
 서울대학교,원자핵공학과,핵연료재료 및 안전 연구실,이유호,https://nucleng.snu.ac.kr/research/lab
 서울대학교,원자핵공학과,핵연료주기 및 핵비확산 연구실,최성열,https://nucleng.snu.ac.kr/research/lab
 서울대학교,조선해양공학과,내항조종연구실, 남보우,https//sites.google.com/view/marinevehicle
-서울대학교,조선해양공학과,딥러닝 연구실, 김태완,http//dllab.snu.ac.kr
 서울대학교,조선해양공학과,생산공학연구실, 우종훈,https//snupel.web.app/
 서울대학교,조선해양공학과,선박저항성능연구실, 이신형,http//snutt.snu.ac.kr/
 서울대학교,조선해양공학과,수중 음향 지능 연구실, 추영민,https//sites.google.com/view/uail25
@@ -3004,8 +3000,3 @@ university_name_ko,department_name_ko,lab_name_ko,professor_name,homepage_url
 대구경북과학기술원(DGIST),반도체공학과,이정협,INS LAB,https://www.dgist.ac.kr/prog/peopleProfsr/semi/sub02_01/list.do
 대구경북과학기술원(DGIST),반도체공학과,장재은,AEDRG Jang Lab,https://www.dgist.ac.kr/prog/peopleProfsr/semi/sub02_01/list.do
 대구경북과학기술원(DGIST),반도체공학과,조창희,Semiconductor Quantum Photonics Lab,https://www.dgist.ac.kr/prog/peopleProfsr/semi/sub02_01/list.do
-대구경북과학기술원(DGIST),반도체공학과,한상윤,Han's Research Lab,https://www.dgist.ac.kr/prog/peopleProfsr/semi/sub02_01/list.do카이스트(KAIST/한국과학기술원),김재철AI대학원,AI 기반 시스템 연구실,김재철,https://ai.kaist.ac.kr/
-카이스트(KAIST/한국과학기술원),김재철AI대학원,머신러닝 연구실,박성준,https://ml.kaist.ac.kr/
-카이스트(KAIST/한국과학기술원),김재철AI대학원,딥러닝 연구실,이상민,https://dl.kaist.ac.kr/
-카이스트(KAIST/한국과학기술원),김재철AI대학원,자연어처리 연구실,정재훈,https://nlp.kaist.ac.kr/
-카이스트(KAIST/한국과학기술원),김재철AI대학원,컴퓨터비전 연구실,최윤호,https://cv.kaist.ac.kr/
