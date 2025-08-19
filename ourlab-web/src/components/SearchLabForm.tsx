@@ -1,11 +1,15 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type SearchLabFormProps = {
   variant: "write" | "browse";
 };
 
 export default function SearchLabForm({ variant }: SearchLabFormProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
   const [university, setUniversity] = useState("");
   const [department, setDepartment] = useState("");
   const [lab, setLab] = useState("");
@@ -32,6 +36,97 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
   // 검색 결과 상태
   const [searchResults, setSearchResults] = useState<Array<{ id: number; name: string; professor_name?: string; homepage_url?: string }>>([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  // 검색 실행 함수
+  const performSearch = async (universityId: number, departmentId: number, searchQuery: string) => {
+    setIsSearching(true);
+    try {
+      const queryParams = new URLSearchParams({
+        university_id: universityId.toString(),
+        department_id: departmentId.toString()
+      });
+      
+      if (searchQuery.trim()) {
+        queryParams.append('q', searchQuery.trim());
+      }
+      
+      const response = await fetch(`/api/labs?${queryParams.toString()}`, {
+        cache: "no-store"
+      });
+      const data = await response.json();
+      setSearchResults(data.items);
+    } catch (error) {
+      console.error("검색 중 오류가 발생했습니다:", error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // URL 파라미터에서 검색 상태 복원 (초기 로드 시에만)
+  useEffect(() => {
+    const univParam = searchParams.get('university');
+    const deptParam = searchParams.get('department');
+    const labParam = searchParams.get('lab');
+    
+    // 이미 값이 설정되어 있으면 복원하지 않음
+    if (univParam && !selectedUniversityName) {
+      setUniversity(univParam);
+      setSelectedUniversityName(univParam);
+      // 대학교 ID 찾기
+      fetch(`/api/universities?q=${encodeURIComponent(univParam)}`)
+        .then(r => r.json())
+        .then(data => {
+          const foundUniv = data.items.find((u: any) => u.name === univParam);
+          if (foundUniv) {
+            setSelectedUniversityId(foundUniv.id);
+          }
+        })
+        .catch(() => {});
+    }
+    if (deptParam && univParam && !selectedDepartmentName) {
+      setDepartment(deptParam);
+      setSelectedDepartmentName(deptParam);
+      // 학과 ID 찾기 (대학교 ID가 설정된 후에 실행)
+      if (selectedUniversityId) {
+        fetch(`/api/departments?q=${encodeURIComponent(deptParam)}&university_id=${selectedUniversityId}`)
+          .then(r => r.json())
+          .then(data => {
+            const foundDept = data.items.find((d: any) => d.name === deptParam);
+            if (foundDept) {
+              setSelectedDepartmentId(foundDept.id);
+            }
+          })
+          .catch(() => {});
+      }
+    }
+    if (labParam && !lab) {
+      setLab(labParam);
+    }
+  }, [searchParams]); // selectedUniversityId 의존성 제거
+
+  // 대학교 ID가 설정된 후 학과 ID 복원 및 검색 실행
+  useEffect(() => {
+    const deptParam = searchParams.get('department');
+    const labParam = searchParams.get('lab');
+    
+    if (deptParam && selectedUniversityName && selectedUniversityId && !selectedDepartmentId) {
+      fetch(`/api/departments?q=${encodeURIComponent(deptParam)}&university_id=${selectedUniversityId}`)
+        .then(r => r.json())
+        .then(data => {
+          const foundDept = data.items.find((d: any) => d.name === deptParam);
+          if (foundDept) {
+            setSelectedDepartmentId(foundDept.id);
+            
+            // 학과 ID가 설정되면 자동으로 검색 실행
+            setTimeout(() => {
+              performSearch(selectedUniversityId, foundDept.id, labParam || '');
+            }, 100);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [selectedUniversityId, searchParams, selectedUniversityName, selectedDepartmentId]);
 
   useEffect(() => {
     if (!university || (selectedUniversityName && university === selectedUniversityName) || !isUnivOpen) {
@@ -107,30 +202,17 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
       return;
     }
 
-    setIsSearching(true);
-    try {
-      // 교수이름 검색어가 있으면 포함, 없으면 제외
-      const searchQuery = lab.trim();
-      const queryParams = new URLSearchParams({
-        university_id: selectedUniversityId.toString(),
-        department_id: selectedDepartmentId.toString()
-      });
-      
-      if (searchQuery) {
-        queryParams.append('q', searchQuery);
-      }
-      
-      const response = await fetch(`/api/labs?${queryParams.toString()}`, {
-        cache: "no-store"
-      });
-      const data = await response.json();
-      setSearchResults(data.items);
-    } catch (error) {
-      console.error("검색 중 오류가 발생했습니다:", error);
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
+    // URL 업데이트
+    const newSearchParams = new URLSearchParams();
+    if (selectedUniversityName) newSearchParams.set('university', selectedUniversityName);
+    if (selectedDepartmentName) newSearchParams.set('department', selectedDepartmentName);
+    if (lab.trim()) newSearchParams.set('lab', lab.trim());
+    
+    const newUrl = `${window.location.pathname}?${newSearchParams.toString()}`;
+    router.replace(newUrl, { scroll: false });
+
+    // 검색 실행
+    await performSearch(selectedUniversityId, selectedDepartmentId, lab);
   };
 
   // 키보드 네비게이션 핸들러들
@@ -166,6 +248,12 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
           setUnivItems([]);
           setIsUnivOpen(false);
           setUnivHighlightedIndex(-2);
+          
+          // URL 업데이트
+          const newSearchParams = new URLSearchParams();
+          newSearchParams.set('university', selectedItem.name);
+          const newUrl = `${window.location.pathname}?${newSearchParams.toString()}`;
+          router.replace(newUrl, { scroll: false });
         }
         break;
       case 'Escape':
@@ -204,6 +292,13 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
           setDeptItems([]);
           setIsDeptOpen(false);
           setDeptHighlightedIndex(-2);
+          
+          // URL 업데이트
+          const newSearchParams = new URLSearchParams();
+          if (selectedUniversityName) newSearchParams.set('university', selectedUniversityName);
+          newSearchParams.set('department', selectedItem.name);
+          const newUrl = `${window.location.pathname}?${newSearchParams.toString()}`;
+          router.replace(newUrl, { scroll: false });
         }
         break;
       case 'Escape':
@@ -294,6 +389,12 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
                     setUnivItems([]);
                     setIsUnivOpen(false);
                     setUnivHighlightedIndex(-2);
+                    
+                    // URL 업데이트
+                    const newSearchParams = new URLSearchParams();
+                    newSearchParams.set('university', u.name);
+                    const newUrl = `${window.location.pathname}?${newSearchParams.toString()}`;
+                    router.replace(newUrl, { scroll: false });
                   }}
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -309,6 +410,12 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
                     setUnivItems([]);
                     setIsUnivOpen(false);
                     setUnivHighlightedIndex(-2);
+                    
+                    // URL 업데이트
+                    const newSearchParams = new URLSearchParams();
+                    newSearchParams.set('university', u.name);
+                    const newUrl = `${window.location.pathname}?${newSearchParams.toString()}`;
+                    router.replace(newUrl, { scroll: false });
                   }}
                   onMouseEnter={() => setUnivHighlightedIndex(index)}
                 >
@@ -360,6 +467,13 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
                     setDeptItems([]);
                     setIsDeptOpen(false);
                     setDeptHighlightedIndex(-2);
+                    
+                    // URL 업데이트
+                    const newSearchParams = new URLSearchParams();
+                    if (selectedUniversityName) newSearchParams.set('university', selectedUniversityName);
+                    newSearchParams.set('department', d.name);
+                    const newUrl = `${window.location.pathname}?${newSearchParams.toString()}`;
+                    router.replace(newUrl, { scroll: false });
                   }}
                   onMouseDown={(e) => {
                     e.preventDefault();
@@ -372,6 +486,13 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
                     setDeptItems([]);
                     setIsDeptOpen(false);
                     setDeptHighlightedIndex(-2);
+                    
+                    // URL 업데이트
+                    const newSearchParams = new URLSearchParams();
+                    if (selectedUniversityName) newSearchParams.set('university', selectedUniversityName);
+                    newSearchParams.set('department', d.name);
+                    const newUrl = `${window.location.pathname}?${newSearchParams.toString()}`;
+                    router.replace(newUrl, { scroll: false });
                   }}
                   onMouseEnter={() => setDeptHighlightedIndex(index)}
                 >
@@ -385,51 +506,51 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
         <div className="relative sm:col-span-2">
           <div className="flex gap-3">
             <div className="relative flex-1">
-              <input
-                type="text"
-                value={lab}
+          <input
+            type="text"
+            value={lab}
                 onChange={(e) => {
                   setLab(e.target.value);
                   setLabHighlightedIndex(-2);
                 }}
                 placeholder="(선택) 교수님 이름 또는 연구실명으로 검색"
-                autoComplete="off"
-                autoCorrect="off"
-                spellCheck={false}
-                className="w-full rounded-md border border-black/10 px-3 py-2 outline-none focus:ring-2 focus:ring-gray-300"
-                onFocus={() => setIsLabOpen(true)}
-                onBlur={() => setTimeout(() => setIsLabOpen(false), 50)}
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            className="w-full rounded-md border border-black/10 px-3 py-2 outline-none focus:ring-2 focus:ring-gray-300"
+            onFocus={() => setIsLabOpen(true)}
+            onBlur={() => setTimeout(() => setIsLabOpen(false), 50)}
                 onKeyDown={handleLabKeyDown}
-              />
-              {isLabOpen && labItems.length > 0 && (
-                <div className="absolute z-50 mt-1 w-full rounded-md border border-black/10 bg-white shadow" role="listbox" onMouseDownCapture={(e) => e.preventDefault()}>
+          />
+          {isLabOpen && labItems.length > 0 && (
+            <div className="absolute z-50 mt-1 w-full rounded-md border border-black/10 bg-white shadow" role="listbox" onMouseDownCapture={(e) => e.preventDefault()}>
                   {labItems.map((l, index) => (
-                    <button
-                      type="button"
-                      key={l.id}
+                <button
+                  type="button"
+                  key={l.id}
                                         className={`block w-full px-3 py-2 text-left ${
                     index === labHighlightedIndex ? 'bg-blue-100' : 'hover:bg-gray-100'
                   }`}
-                      onPointerDown={(e) => {
-                        e.preventDefault();
-                        setLab(l.name);
-                        setIsLabOpen(false);
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    setLab(l.name);
+                    setIsLabOpen(false);
                         setLabHighlightedIndex(-2);
-                      }}
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        setLab(l.name);
-                        setIsLabOpen(false);
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setLab(l.name);
+                    setIsLabOpen(false);
                         setLabHighlightedIndex(-2);
-                      }}
+                  }}
                       onMouseEnter={() => setLabHighlightedIndex(index)}
-                    >
-                      {l.name}
-                      {l.professor_name ? ` · ${l.professor_name}` : ""}
-                    </button>
-                  ))}
-                </div>
-              )}
+                >
+                  {l.name}
+                  {l.professor_name ? ` · ${l.professor_name}` : ""}
+                </button>
+              ))}
+            </div>
+          )}
             </div>
             <button 
               type="submit" 
@@ -502,7 +623,7 @@ export default function SearchLabForm({ variant }: SearchLabFormProps) {
             ? `"${lab.trim()}"에 해당하는 연구실을 찾을 수 없습니다.`
             : "해당 대학교와 학과에서 연구실을 찾을 수 없습니다."
           }
-        </div>
+      </div>
       )}
     </form>
   );
