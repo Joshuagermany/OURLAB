@@ -8,12 +8,9 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// PostgreSQL 연결
+// PostgreSQL 연결 (Neon 데이터베이스)
 const pool = new Pool({
-  host: 'localhost',
-  port: 5432,
-  database: 'ourlab',
-  // 현재 시스템 사용자로 연결
+  connectionString: "postgresql://neondb_owner:npg_skJBF3H6WZqG@ep-billowing-frost-a1wz2pt5-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 });
 
 // 미들웨어 설정
